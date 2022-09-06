@@ -1,1 +1,86 @@
-
+@charset "utf-8";
+/*!
+ *Last modified: 2022-09-03 11:57:21
+ *名称: ax-rate.css
+ *简介: 评星插件的css文件
+ *用法: new axRate('#id',{参数})
+ *版本: v1.0.0
+ *演示: https://www.axui.cn/v2.0/ax-tree.php
+ *客服: 3217728223@qq.com
+ *交流: QQ群952502085
+ *作者: AXUI团队
+ */
+.ax-rate {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+}
+.ax-rate ul {
+  display: flex;
+}
+.ax-rate li.ax-item {
+  width: 1.8rem;
+  height: 1.8rem;
+  line-height: 1.8rem;
+  margin: 0 0.2rem;
+  cursor: pointer;
+  position: relative;
+}
+.ax-rate li.ax-item i {
+  font-size: 1.8rem;
+  text-align: left;
+  height: 100%;
+  overflow: hidden;
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.ax-rate li.ax-item i:first-child {
+  width: 0%;
+  z-index: 2;
+  transition: width 100ms linear;
+}
+.ax-rate li.ax-item i:first-child:before {
+  color: #ff8400;
+  transition: color 100ms linear;
+}
+.ax-rate li.ax-item i.ax-half:first-child {
+  width: 50%;
+}
+.ax-rate li.ax-item i.ax-full:first-child {
+  width: 100%;
+}
+.ax-rate li.ax-item i:last-child {
+  width: 100%;
+}
+.ax-rate li.ax-item i:last-child:before {
+  color: #f5e7d7;
+}
+.ax-rate[size=md] li.ax-item {
+  width: 2.8rem;
+  height: 2.8rem;
+  line-height: 2.8rem;
+}
+.ax-rate[size=md] li.ax-item i {
+  font-size: 2.8rem;
+}
+.ax-rate[size=lg] li.ax-item {
+  width: 3.8rem;
+  height: 3.8rem;
+  line-height: 3.8rem;
+}
+.ax-rate[size=lg] li.ax-item i {
+  font-size: 3.8rem;
+}
+.ax-rate [clear] {
+  color: #ccc;
+  margin-right: 0.4rem;
+  transition: all 100ms linear;
+}
+.ax-rate [clear]:hover {
+  cursor: pointer;
+  color: #dc3545;
+}
+.ax-rate .ax-tips {
+  margin-left: 0.4rem;
+}
