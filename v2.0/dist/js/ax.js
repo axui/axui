@@ -1,8 +1,8 @@
 /*!
- *Last modified: 2022-07-16 23:52:22
+ *Last modified: 2022-09-06 16:24:37
  *Filename: ax.js
  *Description: Global JS
- *Version: v2.0.0
+ *Version: v2.0.1
  *Website:www.axui.cn or ax.hobly.cn
  *Contact:3217728223@qq.com
  *Author:Michael
@@ -16,8 +16,9 @@
  * 1、data-popper-placement、data-popper-arrow、data-popper-reference-hidden、data-popper-escaped去掉了“popper-”，进行了简化处理
  * 2、修复了popper比按钮宽度或高度小的时候，箭头始终是在按钮中间的问题
  * 3、新增options.fixDistance参数，默认值为24，与第二个问题一致
+ * 4、update方法增加参数elem
  */
-!function(global,factory){"object"==typeof exports&&"undefined"!=typeof module?factory(exports):"function"==typeof define&&define.amd?define(["exports"],factory):factory((global="undefined"!=typeof globalThis?globalThis:global||self).Popper={})}(this,(function(exports){"use strict";function getBoundingClientRect(element,includeScale){var rect=element.getBoundingClientRect(),scaleX=1,scaleY=1;return{width:rect.width/1,height:rect.height/1,top:rect.top/1,right:rect.right/1,bottom:rect.bottom/1,left:rect.left/1,x:rect.left/1,y:rect.top/1}}function getWindow(node){if(null==node)return window;if("[object Window]"!==node.toString()){var ownerDocument=node.ownerDocument;return ownerDocument&&ownerDocument.defaultView||window}return node}function getWindowScroll(node){var win=getWindow(node),scrollLeft,scrollTop;return{scrollLeft:win.pageXOffset,scrollTop:win.pageYOffset}}function isElement(node){var OwnElement;return node instanceof getWindow(node).Element||node instanceof Element}function isHTMLElement(node){var OwnElement;return node instanceof getWindow(node).HTMLElement||node instanceof HTMLElement}function isShadowRoot(node){return"undefined"!=typeof ShadowRoot&&(node instanceof getWindow(node).ShadowRoot||node instanceof ShadowRoot);var OwnElement}function getHTMLElementScroll(element){return{scrollLeft:element.scrollLeft,scrollTop:element.scrollTop}}function getNodeScroll(node){return node!==getWindow(node)&&isHTMLElement(node)?getHTMLElementScroll(node):getWindowScroll(node)}function getNodeName(element){return element?(element.nodeName||"").toLowerCase():null}function getDocumentElement(element){return((isElement(element)?element.ownerDocument:element.document)||window.document).documentElement}function getWindowScrollBarX(element){return getBoundingClientRect(getDocumentElement(element)).left+getWindowScroll(element).scrollLeft}function getComputedStyle(element){return getWindow(element).getComputedStyle(element)}function isScrollParent(element){var _getComputedStyle=getComputedStyle(element),overflow=_getComputedStyle.overflow,overflowX=_getComputedStyle.overflowX,overflowY=_getComputedStyle.overflowY;return/auto|scroll|overlay|hidden/.test(overflow+overflowY+overflowX)}function isElementScaled(element){var rect=element.getBoundingClientRect(),scaleX=rect.width/element.offsetWidth||1,scaleY=rect.height/element.offsetHeight||1;return 1!==scaleX||1!==scaleY}function getCompositeRect(elementOrVirtualElement,offsetParent,isFixed){void 0===isFixed&&(isFixed=!1);var isOffsetParentAnElement=isHTMLElement(offsetParent);isHTMLElement(offsetParent)&&isElementScaled(offsetParent);var documentElement=getDocumentElement(offsetParent),rect=getBoundingClientRect(elementOrVirtualElement),scroll={scrollLeft:0,scrollTop:0},offsets={x:0,y:0};return(isOffsetParentAnElement||!isOffsetParentAnElement&&!isFixed)&&(("body"!==getNodeName(offsetParent)||isScrollParent(documentElement))&&(scroll=getNodeScroll(offsetParent)),isHTMLElement(offsetParent)?((offsets=getBoundingClientRect(offsetParent)).x+=offsetParent.clientLeft,offsets.y+=offsetParent.clientTop):documentElement&&(offsets.x=getWindowScrollBarX(documentElement))),{x:rect.left+scroll.scrollLeft-offsets.x,y:rect.top+scroll.scrollTop-offsets.y,width:rect.width,height:rect.height}}function getLayoutRect(element){var clientRect=getBoundingClientRect(element),width=element.offsetWidth,height=element.offsetHeight;return Math.abs(clientRect.width-width)<=1&&(width=clientRect.width),Math.abs(clientRect.height-height)<=1&&(height=clientRect.height),{x:element.offsetLeft,y:element.offsetTop,width:width,height:height}}function getParentNode(element){return"html"===getNodeName(element)?element:element.assignedSlot||element.parentNode||(isShadowRoot(element)?element.host:null)||getDocumentElement(element)}function getScrollParent(node){return["html","body","#document"].indexOf(getNodeName(node))>=0?node.ownerDocument.body:isHTMLElement(node)&&isScrollParent(node)?node:getScrollParent(getParentNode(node))}function listScrollParents(element,list){var _element$ownerDocumen;void 0===list&&(list=[]);var scrollParent=getScrollParent(element),isBody=scrollParent===(null==(_element$ownerDocumen=element.ownerDocument)?void 0:_element$ownerDocumen.body),win=getWindow(scrollParent),target=isBody?[win].concat(win.visualViewport||[],isScrollParent(scrollParent)?scrollParent:[]):scrollParent,updatedList=list.concat(target);return isBody?updatedList:updatedList.concat(listScrollParents(getParentNode(target)))}function isTableElement(element){return["table","td","th"].indexOf(getNodeName(element))>=0}function getTrueOffsetParent(element){return isHTMLElement(element)&&"fixed"!==getComputedStyle(element).position?element.offsetParent:null}function getContainingBlock(element){var isFirefox=-1!==navigator.userAgent.toLowerCase().indexOf("firefox"),isIE,elementCss;if(-1!==navigator.userAgent.indexOf("Trident")&&isHTMLElement(element)&&"fixed"===getComputedStyle(element).position)return null;for(var currentNode=getParentNode(element);isHTMLElement(currentNode)&&["html","body"].indexOf(getNodeName(currentNode))<0;){var css=getComputedStyle(currentNode);if("none"!==css.transform||"none"!==css.perspective||"paint"===css.contain||-1!==["transform","perspective"].indexOf(css.willChange)||isFirefox&&"filter"===css.willChange||isFirefox&&css.filter&&"none"!==css.filter)return currentNode;currentNode=currentNode.parentNode}return null}function getOffsetParent(element){for(var window=getWindow(element),offsetParent=getTrueOffsetParent(element);offsetParent&&isTableElement(offsetParent)&&"static"===getComputedStyle(offsetParent).position;)offsetParent=getTrueOffsetParent(offsetParent);return offsetParent&&("html"===getNodeName(offsetParent)||"body"===getNodeName(offsetParent)&&"static"===getComputedStyle(offsetParent).position)?window:offsetParent||getContainingBlock(element)||window}var top="top",bottom="bottom",right="right",left="left",auto="auto",basePlacements=[top,bottom,right,left],start="start",end="end",clippingParents="clippingParents",viewport="viewport",popper="popper",reference="reference",variationPlacements=basePlacements.reduce((function(acc,placement){return acc.concat([placement+"-"+start,placement+"-"+end])}),[]),placements=[].concat(basePlacements,[auto]).reduce((function(acc,placement){return acc.concat([placement,placement+"-"+start,placement+"-"+end])}),[]),beforeRead,read,afterRead,beforeMain,main,afterMain,beforeWrite,write,afterWrite,modifierPhases=["beforeRead","read","afterRead","beforeMain","main","afterMain","beforeWrite","write","afterWrite"];function order(modifiers){var map=new Map,visited=new Set,result=[];function sort(modifier){var requires;visited.add(modifier.name),[].concat(modifier.requires||[],modifier.requiresIfExists||[]).forEach((function(dep){if(!visited.has(dep)){var depModifier=map.get(dep);depModifier&&sort(depModifier)}})),result.push(modifier)}return modifiers.forEach((function(modifier){map.set(modifier.name,modifier)})),modifiers.forEach((function(modifier){visited.has(modifier.name)||sort(modifier)})),result}function orderModifiers(modifiers){var orderedModifiers=order(modifiers);return modifierPhases.reduce((function(acc,phase){return acc.concat(orderedModifiers.filter((function(modifier){return modifier.phase===phase})))}),[])}function debounce(fn){var pending;return function(){return pending||(pending=new Promise((function(resolve){Promise.resolve().then((function(){pending=void 0,resolve(fn())}))}))),pending}}function format(str){for(var _len=arguments.length,args=new Array(_len>1?_len-1:0),_key=1;_key<_len;_key++)args[_key-1]=arguments[_key];return[].concat(args).reduce((function(p,c){return p.replace(/%s/,c)}),str)}var INVALID_MODIFIER_ERROR='Popper: modifier "%s" provided an invalid %s property, expected %s but got %s',MISSING_DEPENDENCY_ERROR='Popper: modifier "%s" requires "%s", but "%s" modifier is not available',VALID_PROPERTIES=["name","enabled","phase","fn","effect","requires","options"];function validateModifiers(modifiers){modifiers.forEach((function(modifier){[].concat(Object.keys(modifier),VALID_PROPERTIES).filter((function(value,index,self){return self.indexOf(value)===index})).forEach((function(key){switch(key){case"name":"string"!=typeof modifier.name&&console.error(format(INVALID_MODIFIER_ERROR,String(modifier.name),'"name"','"string"','"'+String(modifier.name)+'"'));break;case"enabled":"boolean"!=typeof modifier.enabled&&console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"enabled"','"boolean"','"'+String(modifier.enabled)+'"'));break;case"phase":modifierPhases.indexOf(modifier.phase)<0&&console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"phase"',"either "+modifierPhases.join(", "),'"'+String(modifier.phase)+'"'));break;case"fn":"function"!=typeof modifier.fn&&console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"fn"','"function"','"'+String(modifier.fn)+'"'));break;case"effect":null!=modifier.effect&&"function"!=typeof modifier.effect&&console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"effect"','"function"','"'+String(modifier.fn)+'"'));break;case"requires":null==modifier.requires||Array.isArray(modifier.requires)||console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"requires"','"array"','"'+String(modifier.requires)+'"'));break;case"requiresIfExists":Array.isArray(modifier.requiresIfExists)||console.error(format(INVALID_MODIFIER_ERROR,modifier.name,'"requiresIfExists"','"array"','"'+String(modifier.requiresIfExists)+'"'));break;case"options":case"data":break;default:console.error('PopperJS: an invalid property has been provided to the "'+modifier.name+'" modifier, valid properties are '+VALID_PROPERTIES.map((function(s){return'"'+s+'"'})).join(", ")+'; but "'+key+'" was provided.')}modifier.requires&&modifier.requires.forEach((function(requirement){null==modifiers.find((function(mod){return mod.name===requirement}))&&console.error(format(MISSING_DEPENDENCY_ERROR,String(modifier.name),requirement,requirement))}))}))}))}function uniqueBy(arr,fn){var identifiers=new Set;return arr.filter((function(item){var identifier=fn(item);if(!identifiers.has(identifier))return identifiers.add(identifier),!0}))}function getBasePlacement(placement){return placement.split("-")[0]}function mergeByName(modifiers){var merged=modifiers.reduce((function(merged,current){var existing=merged[current.name];return merged[current.name]=existing?Object.assign({},existing,current,{options:Object.assign({},existing.options,current.options),data:Object.assign({},existing.data,current.data)}):current,merged}),{});return Object.keys(merged).map((function(key){return merged[key]}))}function getViewportRect(element){var win=getWindow(element),html=getDocumentElement(element),visualViewport=win.visualViewport,width=html.clientWidth,height=html.clientHeight,x=0,y=0;return visualViewport&&(width=visualViewport.width,height=visualViewport.height,/^((?!chrome|android).)*safari/i.test(navigator.userAgent)||(x=visualViewport.offsetLeft,y=visualViewport.offsetTop)),{width:width,height:height,x:x+getWindowScrollBarX(element),y:y}}var max=Math.max,min=Math.min,round=Math.round;function getDocumentRect(element){var _element$ownerDocumen,html=getDocumentElement(element),winScroll=getWindowScroll(element),body=null==(_element$ownerDocumen=element.ownerDocument)?void 0:_element$ownerDocumen.body,width=max(html.scrollWidth,html.clientWidth,body?body.scrollWidth:0,body?body.clientWidth:0),height=max(html.scrollHeight,html.clientHeight,body?body.scrollHeight:0,body?body.clientHeight:0),x=-winScroll.scrollLeft+getWindowScrollBarX(element),y=-winScroll.scrollTop;return"rtl"===getComputedStyle(body||html).direction&&(x+=max(html.clientWidth,body?body.clientWidth:0)-width),{width:width,height:height,x:x,y:y}}function contains(parent,child){var rootNode=child.getRootNode&&child.getRootNode();if(parent.contains(child))return!0;if(rootNode&&isShadowRoot(rootNode)){var next=child;do{if(next&&parent.isSameNode(next))return!0;next=next.parentNode||next.host}while(next)}return!1}function rectToClientRect(rect){return Object.assign({},rect,{left:rect.x,top:rect.y,right:rect.x+rect.width,bottom:rect.y+rect.height})}function getInnerBoundingClientRect(element){var rect=getBoundingClientRect(element);return rect.top=rect.top+element.clientTop,rect.left=rect.left+element.clientLeft,rect.bottom=rect.top+element.clientHeight,rect.right=rect.left+element.clientWidth,rect.width=element.clientWidth,rect.height=element.clientHeight,rect.x=rect.left,rect.y=rect.top,rect}function getClientRectFromMixedType(element,clippingParent){return clippingParent===viewport?rectToClientRect(getViewportRect(element)):isHTMLElement(clippingParent)?getInnerBoundingClientRect(clippingParent):rectToClientRect(getDocumentRect(getDocumentElement(element)))}function getClippingParents(element){var clippingParents=listScrollParents(getParentNode(element)),canEscapeClipping,clipperElement=["absolute","fixed"].indexOf(getComputedStyle(element).position)>=0&&isHTMLElement(element)?getOffsetParent(element):element;return isElement(clipperElement)?clippingParents.filter((function(clippingParent){return isElement(clippingParent)&&contains(clippingParent,clipperElement)&&"body"!==getNodeName(clippingParent)})):[]}function getClippingRect(element,boundary,rootBoundary){var mainClippingParents="clippingParents"===boundary?getClippingParents(element):[].concat(boundary),clippingParents=[].concat(mainClippingParents,[rootBoundary]),firstClippingParent=clippingParents[0],clippingRect=clippingParents.reduce((function(accRect,clippingParent){var rect=getClientRectFromMixedType(element,clippingParent);return accRect.top=max(rect.top,accRect.top),accRect.right=min(rect.right,accRect.right),accRect.bottom=min(rect.bottom,accRect.bottom),accRect.left=max(rect.left,accRect.left),accRect}),getClientRectFromMixedType(element,firstClippingParent));return clippingRect.width=clippingRect.right-clippingRect.left,clippingRect.height=clippingRect.bottom-clippingRect.top,clippingRect.x=clippingRect.left,clippingRect.y=clippingRect.top,clippingRect}function getVariation(placement){return placement.split("-")[1]}function getMainAxisFromPlacement(placement){return["top","bottom"].indexOf(placement)>=0?"x":"y"}function computeOffsets(_ref){var reference=_ref.reference,element=_ref.element,placement=_ref.placement,basePlacement=placement?getBasePlacement(placement):null,variation=placement?getVariation(placement):null,commonX=reference.x+reference.width/2-element.width/2,commonY=reference.y+reference.height/2-element.height/2,offsets;switch(basePlacement){case top:offsets={x:commonX,y:reference.y-element.height};break;case bottom:offsets={x:commonX,y:reference.y+reference.height};break;case right:offsets={x:reference.x+reference.width,y:commonY};break;case left:offsets={x:reference.x-element.width,y:commonY};break;default:offsets={x:reference.x,y:reference.y}}var mainAxis=basePlacement?getMainAxisFromPlacement(basePlacement):null;if(null!=mainAxis){var len="y"===mainAxis?"height":"width";switch(variation){case start:offsets[mainAxis]=offsets[mainAxis]-(reference[len]/2-element[len]/2);break;case end:offsets[mainAxis]=offsets[mainAxis]+(reference[len]/2-element[len]/2)}}return offsets}function getFreshSideObject(){return{top:0,right:0,bottom:0,left:0}}function mergePaddingObject(paddingObject){return Object.assign({},{top:0,right:0,bottom:0,left:0},paddingObject)}function expandToHashMap(value,keys){return keys.reduce((function(hashMap,key){return hashMap[key]=value,hashMap}),{})}function detectOverflow(state,options){void 0===options&&(options={});var _options=options,_options$placement=_options.placement,placement=void 0===_options$placement?state.placement:_options$placement,_options$boundary=_options.boundary,boundary=void 0===_options$boundary?clippingParents:_options$boundary,_options$rootBoundary=_options.rootBoundary,rootBoundary=void 0===_options$rootBoundary?viewport:_options$rootBoundary,_options$elementConte=_options.elementContext,elementContext=void 0===_options$elementConte?popper:_options$elementConte,_options$altBoundary=_options.altBoundary,altBoundary=void 0!==_options$altBoundary&&_options$altBoundary,_options$padding=_options.padding,padding=void 0===_options$padding?0:_options$padding,paddingObject=mergePaddingObject("number"!=typeof padding?padding:expandToHashMap(padding,basePlacements)),altContext=elementContext===popper?reference:popper,popperRect=state.rects.popper,element=state.elements[altBoundary?altContext:elementContext],clippingClientRect=getClippingRect(isElement(element)?element:element.contextElement||getDocumentElement(state.elements.popper),boundary,rootBoundary),referenceClientRect=getBoundingClientRect(state.elements.reference),popperOffsets=computeOffsets({reference:referenceClientRect,element:popperRect,strategy:"absolute",placement:placement}),popperClientRect=rectToClientRect(Object.assign({},popperRect,popperOffsets)),elementClientRect=elementContext===popper?popperClientRect:referenceClientRect,overflowOffsets={top:clippingClientRect.top-elementClientRect.top+paddingObject.top,bottom:elementClientRect.bottom-clippingClientRect.bottom+paddingObject.bottom,left:clippingClientRect.left-elementClientRect.left+paddingObject.left,right:elementClientRect.right-clippingClientRect.right+paddingObject.right},offsetData=state.modifiersData.offset;if(elementContext===popper&&offsetData){var offset=offsetData[placement];Object.keys(overflowOffsets).forEach((function(key){var multiply=[right,bottom].indexOf(key)>=0?1:-1,axis=[top,bottom].indexOf(key)>=0?"y":"x";overflowOffsets[key]+=offset[axis]*multiply}))}return overflowOffsets}var INVALID_ELEMENT_ERROR="Popper: Invalid reference or popper argument provided. They must be either a DOM element or virtual element.",INFINITE_LOOP_ERROR="Popper: An infinite loop in the modifiers cycle has been detected! The cycle has been interrupted to prevent a browser crash.",DEFAULT_OPTIONS={placement:"bottom",modifiers:[],strategy:"absolute",fixDistance:24};function areValidElements(){for(var _len=arguments.length,args=new Array(_len),_key=0;_key<_len;_key++)args[_key]=arguments[_key];return!args.some((function(element){return!(element&&"function"==typeof element.getBoundingClientRect)}))}function popperGenerator(generatorOptions){void 0===generatorOptions&&(generatorOptions={});var _generatorOptions=generatorOptions,_generatorOptions$def=_generatorOptions.defaultModifiers,defaultModifiers=void 0===_generatorOptions$def?[]:_generatorOptions$def,_generatorOptions$def2=_generatorOptions.defaultOptions,defaultOptions=void 0===_generatorOptions$def2?DEFAULT_OPTIONS:_generatorOptions$def2;return function createPopper(reference,popper,options){void 0===options&&(options=defaultOptions);var state={placement:"bottom",orderedModifiers:[],options:Object.assign({},DEFAULT_OPTIONS,defaultOptions),modifiersData:{},elements:{reference:reference,popper:popper},attributes:{},styles:{}},effectCleanupFns=[],isDestroyed=!1,instance={state:state,setOptions:function setOptions(setOptionsAction){var options="function"==typeof setOptionsAction?setOptionsAction(state.options):setOptionsAction;cleanupModifierEffects(),state.options=Object.assign({},defaultOptions,state.options,options),state.scrollParents={reference:isElement(reference)?listScrollParents(reference):reference.contextElement?listScrollParents(reference.contextElement):[],popper:listScrollParents(popper)};var orderedModifiers=orderModifiers(mergeByName([].concat(defaultModifiers,state.options.modifiers))),modifiers,flipModifier;(state.orderedModifiers=orderedModifiers.filter((function(m){return m.enabled})),validateModifiers(uniqueBy([].concat(orderedModifiers,state.options.modifiers),(function(_ref){var name;return _ref.name}))),getBasePlacement(state.options.placement)===auto)&&(state.orderedModifiers.find((function(_ref2){var name;return"flip"===_ref2.name}))||console.error(['Popper: "auto" placements require the "flip" modifier be',"present and enabled to work."].join(" ")));var _getComputedStyle=getComputedStyle(popper),marginTop,marginRight,marginBottom,marginLeft;return[_getComputedStyle.marginTop,_getComputedStyle.marginRight,_getComputedStyle.marginBottom,_getComputedStyle.marginLeft].some((function(margin){return parseFloat(margin)}))&&console.warn(['Popper: CSS "margin" styles cannot be used to apply padding',"between the popper and its reference element or boundary.","To replicate margin, use the `offset` modifier, as well as","the `padding` option in the `preventOverflow` and `flip`","modifiers."].join(" ")),runModifierEffects(),instance.update()},forceUpdate:function forceUpdate(){if(!isDestroyed){var _state$elements=state.elements,reference=_state$elements.reference,popper=_state$elements.popper;if(areValidElements(reference,popper)){state.rects={reference:getCompositeRect(reference,getOffsetParent(popper),"fixed"===state.options.strategy),popper:getLayoutRect(popper)},state.reset=!1,state.placement=state.options.placement,state.orderedModifiers.forEach((function(modifier){return state.modifiersData[modifier.name]=Object.assign({},modifier.data)}));for(var __debug_loops__=0,index=0;index<state.orderedModifiers.length;index++){if((__debug_loops__+=1)>100){console.error(INFINITE_LOOP_ERROR);break}if(!0!==state.reset){var _state$orderedModifie=state.orderedModifiers[index],fn=_state$orderedModifie.fn,_state$orderedModifie2=_state$orderedModifie.options,_options=void 0===_state$orderedModifie2?{}:_state$orderedModifie2,name=_state$orderedModifie.name;"function"==typeof fn&&(state=fn({state:state,options:_options,name:name,instance:instance})||state)}else state.reset=!1,index=-1}}else console.error(INVALID_ELEMENT_ERROR)}},update:debounce((function(){return new Promise((function(resolve){instance.forceUpdate(),resolve(state)}))})),destroy:function destroy(){cleanupModifierEffects(),isDestroyed=!0}};if(!areValidElements(reference,popper))return console.error(INVALID_ELEMENT_ERROR),instance;function runModifierEffects(){state.orderedModifiers.forEach((function(_ref3){var name=_ref3.name,_ref3$options=_ref3.options,options=void 0===_ref3$options?{}:_ref3$options,effect=_ref3.effect;if("function"==typeof effect){var cleanupFn=effect({state:state,name:name,instance:instance,options:options}),noopFn=function noopFn(){};effectCleanupFns.push(cleanupFn||noopFn)}}))}function cleanupModifierEffects(){effectCleanupFns.forEach((function(fn){return fn()})),effectCleanupFns=[]}return instance.setOptions(options).then((function(state){!isDestroyed&&options.onFirstUpdate&&options.onFirstUpdate(state)})),instance}}var passive={passive:!0};function effect$2(_ref){var state=_ref.state,instance=_ref.instance,options=_ref.options,_options$scroll=options.scroll,scroll=void 0===_options$scroll||_options$scroll,_options$resize=options.resize,resize=void 0===_options$resize||_options$resize,window=getWindow(state.elements.popper),scrollParents=[].concat(state.scrollParents.reference,state.scrollParents.popper);return scroll&&scrollParents.forEach((function(scrollParent){scrollParent.addEventListener("scroll",instance.update,passive)})),resize&&window.addEventListener("resize",instance.update,passive),function(){scroll&&scrollParents.forEach((function(scrollParent){scrollParent.removeEventListener("scroll",instance.update,passive)})),resize&&window.removeEventListener("resize",instance.update,passive)}}var eventListeners={name:"eventListeners",enabled:!0,phase:"write",fn:function fn(){},effect:effect$2,data:{}};function popperOffsets(_ref){var state=_ref.state,name=_ref.name;state.modifiersData[name]=computeOffsets({reference:state.rects.reference,element:state.rects.popper,strategy:"absolute",placement:state.placement})}var popperOffsets$1={name:"popperOffsets",enabled:!0,phase:"read",fn:popperOffsets,data:{}},unsetSides={top:"auto",right:"auto",bottom:"auto",left:"auto"};function roundOffsetsByDPR(_ref){var x=_ref.x,y=_ref.y,win,dpr=window.devicePixelRatio||1;return{x:round(round(x*dpr)/dpr)||0,y:round(round(y*dpr)/dpr)||0}}function mapToStyles(_ref2){var _Object$assign2,popper=_ref2.popper,popperRect=_ref2.popperRect,placement=_ref2.placement,variation=_ref2.variation,offsets=_ref2.offsets,position=_ref2.position,gpuAcceleration=_ref2.gpuAcceleration,adaptive=_ref2.adaptive,roundOffsets=_ref2.roundOffsets,_ref3=!0===roundOffsets?roundOffsetsByDPR(offsets):"function"==typeof roundOffsets?roundOffsets(offsets):offsets,_ref3$x=_ref3.x,x=void 0===_ref3$x?0:_ref3$x,_ref3$y=_ref3.y,y=void 0===_ref3$y?0:_ref3$y,hasX=offsets.hasOwnProperty("x"),hasY=offsets.hasOwnProperty("y"),sideX=left,sideY=top,win=window;if(adaptive){var offsetParent=getOffsetParent(popper),heightProp="clientHeight",widthProp="clientWidth";offsetParent===getWindow(popper)&&"static"!==getComputedStyle(offsetParent=getDocumentElement(popper)).position&&"absolute"===position&&(heightProp="scrollHeight",widthProp="scrollWidth"),offsetParent=offsetParent,placement!==top&&(placement!==left&&placement!==right||variation!==end)||(sideY=bottom,y-=offsetParent[heightProp]-popperRect.height,y*=gpuAcceleration?1:-1),placement!==left&&(placement!==top&&placement!==bottom||variation!==end)||(sideX=right,x-=offsetParent[widthProp]-popperRect.width,x*=gpuAcceleration?1:-1)}var commonStyles=Object.assign({position:position},adaptive&&unsetSides),_Object$assign;return gpuAcceleration?Object.assign({},commonStyles,((_Object$assign={})[sideY]=hasY?"0":"",_Object$assign[sideX]=hasX?"0":"",_Object$assign.transform=(win.devicePixelRatio||1)<=1?"translate("+x+"px, "+y+"px)":"translate3d("+x+"px, "+y+"px, 0)",_Object$assign)):Object.assign({},commonStyles,((_Object$assign2={})[sideY]=hasY?y+"px":"",_Object$assign2[sideX]=hasX?x+"px":"",_Object$assign2.transform="",_Object$assign2))}function computeStyles(_ref4){var state=_ref4.state,options=_ref4.options,_options$gpuAccelerat=options.gpuAcceleration,gpuAcceleration=void 0===_options$gpuAccelerat||_options$gpuAccelerat,_options$adaptive=options.adaptive,adaptive=void 0===_options$adaptive||_options$adaptive,_options$roundOffsets=options.roundOffsets,roundOffsets=void 0===_options$roundOffsets||_options$roundOffsets,transitionProperty=getComputedStyle(state.elements.popper).transitionProperty||"";adaptive&&["transform","top","right","bottom","left"].some((function(property){return transitionProperty.indexOf(property)>=0}))&&console.warn(["Popper: Detected CSS transitions on at least one of the following",'CSS properties: "transform", "top", "right", "bottom", "left".',"\n\n",'Disable the "computeStyles" modifier\'s `adaptive` option to allow',"for smooth transitions, or remove these properties from the CSS","transition declaration on the popper element if only transitioning","opacity or background-color for example.","\n\n","We recommend using the popper element as a wrapper around an inner","element that can have any CSS property transitioned for animations."].join(" "));var commonStyles={placement:getBasePlacement(state.placement),variation:getVariation(state.placement),popper:state.elements.popper,popperRect:state.rects.popper,gpuAcceleration:gpuAcceleration};null!=state.modifiersData.popperOffsets&&(state.styles.popper=Object.assign({},state.styles.popper,mapToStyles(Object.assign({},commonStyles,{offsets:state.modifiersData.popperOffsets,position:state.options.strategy,adaptive:adaptive,roundOffsets:roundOffsets})))),null!=state.modifiersData.arrow&&(state.styles.arrow=Object.assign({},state.styles.arrow,mapToStyles(Object.assign({},commonStyles,{offsets:state.modifiersData.arrow,position:"absolute",adaptive:!1,roundOffsets:roundOffsets})))),state.attributes.popper=Object.assign({},state.attributes.popper,{"data-placement":state.placement})}var computeStyles$1={name:"computeStyles",enabled:!0,phase:"beforeWrite",fn:computeStyles,data:{}};function applyStyles(_ref){var state=_ref.state;Object.keys(state.elements).forEach((function(name){var style=state.styles[name]||{},attributes=state.attributes[name]||{},element=state.elements[name];isHTMLElement(element)&&getNodeName(element)&&(Object.assign(element.style,style),Object.keys(attributes).forEach((function(name){var value=attributes[name];!1===value?element.removeAttribute(name):element.setAttribute(name,!0===value?"":value)})))}))}function effect$1(_ref2){var state=_ref2.state,initialStyles={popper:{position:state.options.strategy,left:"0",top:"0",margin:"0"},arrow:{position:"absolute"},reference:{}};return Object.assign(state.elements.popper.style,initialStyles.popper),state.styles=initialStyles,state.elements.arrow&&Object.assign(state.elements.arrow.style,initialStyles.arrow),function(){Object.keys(state.elements).forEach((function(name){var element=state.elements[name],attributes=state.attributes[name]||{},styleProperties,style=Object.keys(state.styles.hasOwnProperty(name)?state.styles[name]:initialStyles[name]).reduce((function(style,property){return style[property]="",style}),{});isHTMLElement(element)&&getNodeName(element)&&(Object.assign(element.style,style),Object.keys(attributes).forEach((function(attribute){element.removeAttribute(attribute)})))}))}}var applyStyles$1={name:"applyStyles",enabled:!0,phase:"write",fn:applyStyles,effect:effect$1,requires:["computeStyles"]};function distanceAndSkiddingToXY(placement,rects,offset){var basePlacement=getBasePlacement(placement),invertDistance=[left,top].indexOf(basePlacement)>=0?-1:1,_ref="function"==typeof offset?offset(Object.assign({},rects,{placement:placement})):offset,skidding=_ref[0],distance=_ref[1];return skidding=skidding||0,distance=(distance||0)*invertDistance,[left,right].indexOf(basePlacement)>=0?{x:distance,y:skidding}:{x:skidding,y:distance}}function offset(_ref2){var state=_ref2.state,options=_ref2.options,name=_ref2.name,_options$offset=options.offset,offset=void 0===_options$offset?[0,0]:_options$offset,data=placements.reduce((function(acc,placement){return acc[placement]=distanceAndSkiddingToXY(placement,state.rects,offset),acc}),{}),_data$state$placement=data[state.placement],x=_data$state$placement.x,y=_data$state$placement.y;null!=state.modifiersData.popperOffsets&&(state.modifiersData.popperOffsets.x+=x,state.modifiersData.popperOffsets.y+=y),state.modifiersData[name]=data}var offset$1={name:"offset",enabled:!0,phase:"main",requires:["popperOffsets"],fn:offset},hash$1={left:"right",right:"left",bottom:"top",top:"bottom"};function getOppositePlacement(placement){return placement.replace(/left|right|bottom|top/g,(function(matched){return hash$1[matched]}))}var hash={start:"end",end:"start"};function getOppositeVariationPlacement(placement){return placement.replace(/start|end/g,(function(matched){return hash[matched]}))}function computeAutoPlacement(state,options){void 0===options&&(options={});var _options=options,placement=_options.placement,boundary=_options.boundary,rootBoundary=_options.rootBoundary,padding=_options.padding,flipVariations=_options.flipVariations,_options$allowedAutoP=_options.allowedAutoPlacements,allowedAutoPlacements=void 0===_options$allowedAutoP?placements:_options$allowedAutoP,variation=getVariation(placement),placements$1=variation?flipVariations?variationPlacements:variationPlacements.filter((function(placement){return getVariation(placement)===variation})):basePlacements,allowedPlacements=placements$1.filter((function(placement){return allowedAutoPlacements.indexOf(placement)>=0}));0===allowedPlacements.length&&(allowedPlacements=placements$1,console.error(["Popper: The `allowedAutoPlacements` option did not allow any","placements. Ensure the `placement` option matches the variation","of the allowed placements.",'For example, "auto" cannot be used to allow "bottom-start".','Use "auto-start" instead.'].join(" ")));var overflows=allowedPlacements.reduce((function(acc,placement){return acc[placement]=detectOverflow(state,{placement:placement,boundary:boundary,rootBoundary:rootBoundary,padding:padding})[getBasePlacement(placement)],acc}),{});return Object.keys(overflows).sort((function(a,b){return overflows[a]-overflows[b]}))}function getExpandedFallbackPlacements(placement){if(getBasePlacement(placement)===auto)return[];var oppositePlacement=getOppositePlacement(placement);return[getOppositeVariationPlacement(placement),oppositePlacement,getOppositeVariationPlacement(oppositePlacement)]}function flip(_ref){var state=_ref.state,options=_ref.options,name=_ref.name;if(!state.modifiersData[name]._skip){for(var _options$mainAxis=options.mainAxis,checkMainAxis=void 0===_options$mainAxis||_options$mainAxis,_options$altAxis=options.altAxis,checkAltAxis=void 0===_options$altAxis||_options$altAxis,specifiedFallbackPlacements=options.fallbackPlacements,padding=options.padding,boundary=options.boundary,rootBoundary=options.rootBoundary,altBoundary=options.altBoundary,_options$flipVariatio=options.flipVariations,flipVariations=void 0===_options$flipVariatio||_options$flipVariatio,allowedAutoPlacements=options.allowedAutoPlacements,preferredPlacement=state.options.placement,basePlacement=getBasePlacement(preferredPlacement),isBasePlacement,fallbackPlacements=specifiedFallbackPlacements||(basePlacement===preferredPlacement||!flipVariations?[getOppositePlacement(preferredPlacement)]:getExpandedFallbackPlacements(preferredPlacement)),placements=[preferredPlacement].concat(fallbackPlacements).reduce((function(acc,placement){return acc.concat(getBasePlacement(placement)===auto?computeAutoPlacement(state,{placement:placement,boundary:boundary,rootBoundary:rootBoundary,padding:padding,flipVariations:flipVariations,allowedAutoPlacements:allowedAutoPlacements}):placement)}),[]),referenceRect=state.rects.reference,popperRect=state.rects.popper,checksMap=new Map,makeFallbackChecks=!0,firstFittingPlacement=placements[0],i=0;i<placements.length;i++){var placement=placements[i],_basePlacement=getBasePlacement(placement),isStartVariation=getVariation(placement)===start,isVertical=[top,bottom].indexOf(_basePlacement)>=0,len=isVertical?"width":"height",overflow=detectOverflow(state,{placement:placement,boundary:boundary,rootBoundary:rootBoundary,altBoundary:altBoundary,padding:padding}),mainVariationSide=isVertical?isStartVariation?right:left:isStartVariation?bottom:top;referenceRect[len]>popperRect[len]&&(mainVariationSide=getOppositePlacement(mainVariationSide));var altVariationSide=getOppositePlacement(mainVariationSide),checks=[];if(checkMainAxis&&checks.push(overflow[_basePlacement]<=0),checkAltAxis&&checks.push(overflow[mainVariationSide]<=0,overflow[altVariationSide]<=0),checks.every((function(check){return check}))){firstFittingPlacement=placement,makeFallbackChecks=!1;break}checksMap.set(placement,checks)}if(makeFallbackChecks)for(var numberOfChecks,_loop=function _loop(_i){var fittingPlacement=placements.find((function(placement){var checks=checksMap.get(placement);if(checks)return checks.slice(0,_i).every((function(check){return check}))}));if(fittingPlacement)return firstFittingPlacement=fittingPlacement,"break"},_i=flipVariations?3:1;_i>0;_i--){var _ret;if("break"===_loop(_i))break}state.placement!==firstFittingPlacement&&(state.modifiersData[name]._skip=!0,state.placement=firstFittingPlacement,state.reset=!0)}}var flip$1={name:"flip",enabled:!0,phase:"main",fn:flip,requiresIfExists:["offset"],data:{_skip:!1}};function getAltAxis(axis){return"x"===axis?"y":"x"}function within(min$1,value,max$1){return max(min$1,min(value,max$1))}function preventOverflow(_ref){var state=_ref.state,options=_ref.options,name=_ref.name,_options$mainAxis=options.mainAxis,checkMainAxis=void 0===_options$mainAxis||_options$mainAxis,_options$altAxis=options.altAxis,checkAltAxis=void 0!==_options$altAxis&&_options$altAxis,boundary=options.boundary,rootBoundary=options.rootBoundary,altBoundary=options.altBoundary,padding=options.padding,_options$tether=options.tether,tether=void 0===_options$tether||_options$tether,_options$tetherOffset=options.tetherOffset,tetherOffset=void 0===_options$tetherOffset?0:_options$tetherOffset,overflow=detectOverflow(state,{boundary:boundary,rootBoundary:rootBoundary,padding:padding,altBoundary:altBoundary}),basePlacement=getBasePlacement(state.placement),variation=getVariation(state.placement),isBasePlacement=!variation,mainAxis=getMainAxisFromPlacement(basePlacement),altAxis=getAltAxis(mainAxis),popperOffsets=state.modifiersData.popperOffsets,referenceRect=state.rects.reference,popperRect=state.rects.popper,tetherOffsetValue="function"==typeof tetherOffset?tetherOffset(Object.assign({},state.rects,{placement:state.placement})):tetherOffset,data={x:0,y:0};if(popperOffsets){if(checkMainAxis||checkAltAxis){var mainSide="y"===mainAxis?top:left,altSide="y"===mainAxis?bottom:right,len="y"===mainAxis?"height":"width",offset=popperOffsets[mainAxis],min$1=popperOffsets[mainAxis]+overflow[mainSide],max$1=popperOffsets[mainAxis]-overflow[altSide],additive=tether?-popperRect[len]/2:0,minLen=variation===start?referenceRect[len]:popperRect[len],maxLen=variation===start?-popperRect[len]:-referenceRect[len],arrowElement=state.elements.arrow,arrowRect=tether&&arrowElement?getLayoutRect(arrowElement):{width:0,height:0},arrowPaddingObject=state.modifiersData["arrow#persistent"]?state.modifiersData["arrow#persistent"].padding:{top:0,right:0,bottom:0,left:0},arrowPaddingMin=arrowPaddingObject[mainSide],arrowPaddingMax=arrowPaddingObject[altSide],arrowLen=within(0,referenceRect[len],arrowRect[len]),minOffset=isBasePlacement?referenceRect[len]/2-additive-arrowLen-arrowPaddingMin-tetherOffsetValue:minLen-arrowLen-arrowPaddingMin-tetherOffsetValue,maxOffset=isBasePlacement?-referenceRect[len]/2+additive+arrowLen+arrowPaddingMax+tetherOffsetValue:maxLen+arrowLen+arrowPaddingMax+tetherOffsetValue,arrowOffsetParent=state.elements.arrow&&getOffsetParent(state.elements.arrow),clientOffset=arrowOffsetParent?"y"===mainAxis?arrowOffsetParent.clientTop||0:arrowOffsetParent.clientLeft||0:0,offsetModifierValue=state.modifiersData.offset?state.modifiersData.offset[state.placement][mainAxis]:0,tetherMin=popperOffsets[mainAxis]+minOffset-offsetModifierValue-clientOffset,tetherMax=popperOffsets[mainAxis]+maxOffset-offsetModifierValue;if(checkMainAxis){var preventedOffset=within(tether?min(min$1,tetherMin):min$1,offset,tether?max(max$1,tetherMax):max$1);popperOffsets[mainAxis]=preventedOffset,data[mainAxis]=preventedOffset-offset}if(checkAltAxis){var _mainSide="x"===mainAxis?top:left,_altSide="x"===mainAxis?bottom:right,_offset=popperOffsets[altAxis],_min=_offset+overflow[_mainSide],_max=_offset-overflow[_altSide],_preventedOffset=within(tether?min(_min,tetherMin):_min,_offset,tether?max(_max,tetherMax):_max);popperOffsets[altAxis]=_preventedOffset,data[altAxis]=_preventedOffset-_offset}}state.modifiersData[name]=data}}var preventOverflow$1={name:"preventOverflow",enabled:!0,phase:"main",fn:preventOverflow,requiresIfExists:["offset"]},toPaddingObject=function toPaddingObject(padding,state){return mergePaddingObject("number"!=typeof(padding="function"==typeof padding?padding(Object.assign({},state.rects,{placement:state.placement})):padding)?padding:expandToHashMap(padding,basePlacements))};function arrow(_ref){var _state$modifiersData$,state=_ref.state,name=_ref.name,options=_ref.options,arrowElement=state.elements.arrow,popperOffsets=state.modifiersData.popperOffsets,basePlacement=getBasePlacement(state.placement),axis=getMainAxisFromPlacement(basePlacement),isVertical,len=[left,right].indexOf(basePlacement)>=0?"height":"width";if(arrowElement&&popperOffsets){var paddingObject=toPaddingObject(options.padding,state),arrowRect=getLayoutRect(arrowElement),minProp="y"===axis?top:left,maxProp="y"===axis?bottom:right,endDiff=state.rects.reference[len]+state.rects.reference[axis]-popperOffsets[axis]-state.rects.popper[len],startDiff=popperOffsets[axis]-state.rects.reference[axis],arrowOffsetParent=getOffsetParent(arrowElement),clientSize=arrowOffsetParent?"y"===axis?arrowOffsetParent.clientHeight||0:arrowOffsetParent.clientWidth||0:0,centerToReference=endDiff/2-startDiff/2,min=paddingObject[minProp],max=clientSize-arrowRect[len]-paddingObject[maxProp],center=null,lessWidth=state.rects.popper.width<state.rects.reference.width,leftHeight=state.rects.popper.height<state.rects.reference.height,startV="top-start"==state.options.placement||"bottom-start"==state.options.placement,endV="top-end"==state.options.placement||"bottom-end"==state.options.placement,startH="left-start"==state.options.placement||"right-start"==state.options.placement,endH="left-end"==state.options.placement||"right-end"==state.options.placement,offset=within(min,center=lessWidth&&startV?state.options.fixDistance:lessWidth&&endV?max-state.options.fixDistance:leftHeight&&startH?state.options.fixDistance:leftHeight&&endH?max-state.options.fixDistance:clientSize/2-arrowRect[len]/2+centerToReference,max),axisProp=axis;state.modifiersData[name]=((_state$modifiersData$={})[axisProp]=offset,_state$modifiersData$.centerOffset=offset-center,_state$modifiersData$)}}function effect(_ref2){var state=_ref2.state,options,_options$element=_ref2.options.element,arrowElement=void 0===_options$element?"[arrow]":_options$element;null!=arrowElement&&("string"!=typeof arrowElement||(arrowElement=state.elements.popper.querySelector(arrowElement)))&&(isHTMLElement(arrowElement)||console.error(['Popper: "arrow" element must be an HTMLElement (not an SVGElement).',"To use an SVG arrow, wrap it in an HTMLElement that will be used as","the arrow."].join(" ")),contains(state.elements.popper,arrowElement)?state.elements.arrow=arrowElement:console.error(['Popper: "arrow" modifier\'s `element` must be a child of the popper',"element."].join(" ")))}var arrow$1={name:"arrow",enabled:!0,phase:"main",fn:arrow,effect:effect,requires:["popperOffsets"],requiresIfExists:["preventOverflow"]};function getSideOffsets(overflow,rect,preventedOffsets){return void 0===preventedOffsets&&(preventedOffsets={x:0,y:0}),{top:overflow.top-rect.height-preventedOffsets.y,right:overflow.right-rect.width+preventedOffsets.x,bottom:overflow.bottom-rect.height+preventedOffsets.y,left:overflow.left-rect.width-preventedOffsets.x}}function isAnySideFullyClipped(overflow){return[top,right,bottom,left].some((function(side){return overflow[side]>=0}))}function hide(_ref){var state=_ref.state,name=_ref.name,referenceRect=state.rects.reference,popperRect=state.rects.popper,preventedOffsets=state.modifiersData.preventOverflow,referenceOverflow=detectOverflow(state,{elementContext:"reference"}),popperAltOverflow=detectOverflow(state,{altBoundary:!0}),referenceClippingOffsets=getSideOffsets(referenceOverflow,referenceRect),popperEscapeOffsets=getSideOffsets(popperAltOverflow,popperRect,preventedOffsets),isReferenceHidden=isAnySideFullyClipped(referenceClippingOffsets),hasPopperEscaped=isAnySideFullyClipped(popperEscapeOffsets);state.modifiersData[name]={referenceClippingOffsets:referenceClippingOffsets,popperEscapeOffsets:popperEscapeOffsets,isReferenceHidden:isReferenceHidden,hasPopperEscaped:hasPopperEscaped},state.attributes.popper=Object.assign({},state.attributes.popper,{"data-reference-hidden":isReferenceHidden,"data-escaped":hasPopperEscaped})}var hide$1={name:"hide",enabled:!0,phase:"main",requiresIfExists:["preventOverflow"],fn:hide},defaultModifiers$1,createPopper$1=popperGenerator({defaultModifiers:[eventListeners,popperOffsets$1,computeStyles$1,applyStyles$1]}),defaultModifiers=[eventListeners,popperOffsets$1,computeStyles$1,applyStyles$1,offset$1,flip$1,preventOverflow$1,arrow$1,hide$1],createPopper=popperGenerator({defaultModifiers:defaultModifiers});exports.applyStyles=applyStyles$1,exports.arrow=arrow$1,exports.computeStyles=computeStyles$1,exports.createPopper=createPopper,exports.createPopperLite=createPopper$1,exports.defaultModifiers=defaultModifiers,exports.detectOverflow=detectOverflow,exports.eventListeners=eventListeners,exports.flip=flip$1,exports.hide=hide$1,exports.offset=offset$1,exports.popperGenerator=popperGenerator,exports.popperOffsets=popperOffsets$1,exports.preventOverflow=preventOverflow$1,Object.defineProperty(exports,"__esModule",{value:!0})}));
+!function(e,t){"object"==typeof exports&&"undefined"!=typeof module?t(exports):"function"==typeof define&&define.amd?define(["exports"],t):t((e="undefined"!=typeof globalThis?globalThis:e||self).Popper={})}(this,(function(e){"use strict";function t(e,t){var n=e.getBoundingClientRect();return{width:n.width/1,height:n.height/1,top:n.top/1,right:n.right/1,bottom:n.bottom/1,left:n.left/1,x:n.left/1,y:n.top/1}}function n(e){if(null==e)return window;if("[object Window]"!==e.toString()){var t=e.ownerDocument;return t&&t.defaultView||window}return e}function r(e){var t=n(e);return{scrollLeft:t.pageXOffset,scrollTop:t.pageYOffset}}function o(e){return e instanceof n(e).Element||e instanceof Element}function i(e){return e instanceof n(e).HTMLElement||e instanceof HTMLElement}function a(e){return"undefined"!=typeof ShadowRoot&&(e instanceof n(e).ShadowRoot||e instanceof ShadowRoot)}function s(e){return e?(e.nodeName||"").toLowerCase():null}function f(e){return((o(e)?e.ownerDocument:e.document)||window.document).documentElement}function c(e){return t(f(e)).left+r(e).scrollLeft}function p(e){return n(e).getComputedStyle(e)}function l(e){var t=p(e),n=t.overflow,r=t.overflowX,o=t.overflowY;return/auto|scroll|overlay|hidden/.test(n+o+r)}function u(e,o,a){void 0===a&&(a=!1);var p=i(o);i(o)&&function(e){var t=e.getBoundingClientRect(),n=t.width/e.offsetWidth||1,r=t.height/e.offsetHeight||1}(o);var u,d,m=f(o),h=t(e),v={scrollLeft:0,scrollTop:0},g={x:0,y:0};return(p||!p&&!a)&&(("body"!==s(o)||l(m))&&(v=(u=o)!==n(u)&&i(u)?{scrollLeft:(d=u).scrollLeft,scrollTop:d.scrollTop}:r(u)),i(o)?((g=t(o)).x+=o.clientLeft,g.y+=o.clientTop):m&&(g.x=c(m))),{x:h.left+v.scrollLeft-g.x,y:h.top+v.scrollTop-g.y,width:h.width,height:h.height}}function d(e){var n=t(e),r=e.offsetWidth,o=e.offsetHeight;return Math.abs(n.width-r)<=1&&(r=n.width),Math.abs(n.height-o)<=1&&(o=n.height),{x:e.offsetLeft,y:e.offsetTop,width:r,height:o}}function m(e){return"html"===s(e)?e:e.assignedSlot||e.parentNode||(a(e)?e.host:null)||f(e)}function h(e,t){var r;void 0===t&&(t=[]);var o=function e(t){return["html","body","#document"].indexOf(s(t))>=0?t.ownerDocument.body:i(t)&&l(t)?t:e(m(t))}(e),a=o===(null==(r=e.ownerDocument)?void 0:r.body),f=n(o),c=a?[f].concat(f.visualViewport||[],l(o)?o:[]):o,p=t.concat(c);return a?p:p.concat(h(m(c)))}function v(e){return["table","td","th"].indexOf(s(e))>=0}function g(e){return i(e)&&"fixed"!==p(e).position?e.offsetParent:null}function b(e){for(var t=n(e),r=g(e);r&&v(r)&&"static"===p(r).position;)r=g(r);return r&&("html"===s(r)||"body"===s(r)&&"static"===p(r).position)?t:r||function(e){var t=-1!==navigator.userAgent.toLowerCase().indexOf("firefox");if(-1!==navigator.userAgent.indexOf("Trident")&&i(e)&&"fixed"===p(e).position)return null;for(var n=m(e);i(n)&&["html","body"].indexOf(s(n))<0;){var r=p(n);if("none"!==r.transform||"none"!==r.perspective||"paint"===r.contain||-1!==["transform","perspective"].indexOf(r.willChange)||t&&"filter"===r.willChange||t&&r.filter&&"none"!==r.filter)return n;n=n.parentNode}return null}(e)||t}var y="top",w="bottom",x="right",O="left",j=[y,w,x,O],E=j.reduce((function(e,t){return e.concat([t+"-start",t+"-end"])}),[]),S=[].concat(j,["auto"]).reduce((function(e,t){return e.concat([t,t+"-start",t+"-end"])}),[]),D=["beforeRead","read","afterRead","beforeMain","main","afterMain","beforeWrite","write","afterWrite"];function P(e){var t=new Map,n=new Set,r=[];return e.forEach((function(e){t.set(e.name,e)})),e.forEach((function(e){n.has(e.name)||function e(o){n.add(o.name),[].concat(o.requires||[],o.requiresIfExists||[]).forEach((function(r){if(!n.has(r)){var o=t.get(r);o&&e(o)}})),r.push(o)}(e)})),r}function k(e){for(var t=arguments.length,n=new Array(t>1?t-1:0),r=1;r<t;r++)n[r-1]=arguments[r];return[].concat(n).reduce((function(e,t){return e.replace(/%s/,t)}),e)}var L='Popper: modifier "%s" provided an invalid %s property, expected %s but got %s',M=["name","enabled","phase","fn","effect","requires","options"];function T(e){return e.split("-")[0]}var q=Math.max,A=Math.min,W=Math.round;function B(e,t){var n=t.getRootNode&&t.getRootNode();if(e.contains(t))return!0;if(n&&a(n)){var r=t;do{if(r&&e.isSameNode(r))return!0;r=r.parentNode||r.host}while(r)}return!1}function H(e){return Object.assign({},e,{left:e.x,top:e.y,right:e.x+e.width,bottom:e.y+e.height})}function C(e,o){return"viewport"===o?H(function(e){var t=n(e),r=f(e),o=t.visualViewport,i=r.clientWidth,a=r.clientHeight,s=0,p=0;return o&&(i=o.width,a=o.height,/^((?!chrome|android).)*safari/i.test(navigator.userAgent)||(s=o.offsetLeft,p=o.offsetTop)),{width:i,height:a,x:s+c(e),y:p}}(e)):i(o)?function(e){var n=t(e);return n.top=n.top+e.clientTop,n.left=n.left+e.clientLeft,n.bottom=n.top+e.clientHeight,n.right=n.left+e.clientWidth,n.width=e.clientWidth,n.height=e.clientHeight,n.x=n.left,n.y=n.top,n}(o):H(function(e){var t,n=f(e),o=r(e),i=null==(t=e.ownerDocument)?void 0:t.body,a=q(n.scrollWidth,n.clientWidth,i?i.scrollWidth:0,i?i.clientWidth:0),s=q(n.scrollHeight,n.clientHeight,i?i.scrollHeight:0,i?i.clientHeight:0),l=-o.scrollLeft+c(e),u=-o.scrollTop;return"rtl"===p(i||n).direction&&(l+=q(n.clientWidth,i?i.clientWidth:0)-a),{width:a,height:s,x:l,y:u}}(f(e)))}function R(e,t,n){var r="clippingParents"===t?function(e){var t=h(m(e)),n=["absolute","fixed"].indexOf(p(e).position)>=0&&i(e)?b(e):e;return o(n)?t.filter((function(e){return o(e)&&B(e,n)&&"body"!==s(e)})):[]}(e):[].concat(t),a=[].concat(r,[n]),f=a[0],c=a.reduce((function(t,n){var r=C(e,n);return t.top=q(r.top,t.top),t.right=A(r.right,t.right),t.bottom=A(r.bottom,t.bottom),t.left=q(r.left,t.left),t}),C(e,f));return c.width=c.right-c.left,c.height=c.bottom-c.top,c.x=c.left,c.y=c.top,c}function I(e){return e.split("-")[1]}function V(e){return["top","bottom"].indexOf(e)>=0?"x":"y"}function N(e){var t,n=e.reference,r=e.element,o=e.placement,i=o?T(o):null,a=o?I(o):null,s=n.x+n.width/2-r.width/2,f=n.y+n.height/2-r.height/2;switch(i){case y:t={x:s,y:n.y-r.height};break;case w:t={x:s,y:n.y+n.height};break;case x:t={x:n.x+n.width,y:f};break;case O:t={x:n.x-r.width,y:f};break;default:t={x:n.x,y:n.y}}var c=i?V(i):null;if(null!=c){var p="y"===c?"height":"width";switch(a){case"start":t[c]=t[c]-(n[p]/2-r[p]/2);break;case"end":t[c]=t[c]+(n[p]/2-r[p]/2)}}return t}function U(e){return Object.assign({},{top:0,right:0,bottom:0,left:0},e)}function _(e,t){return t.reduce((function(t,n){return t[n]=e,t}),{})}function F(e,n){void 0===n&&(n={});var r=n,i=r.placement,a=void 0===i?e.placement:i,s=r.boundary,c=void 0===s?"clippingParents":s,p=r.rootBoundary,l=void 0===p?"viewport":p,u=r.elementContext,d=void 0===u?"popper":u,m=r.altBoundary,h=void 0!==m&&m,v=r.padding,g=void 0===v?0:v,b=U("number"!=typeof g?g:_(g,j)),O="popper"===d?"reference":"popper",E=e.rects.popper,S=e.elements[h?O:d],D=R(o(S)?S:S.contextElement||f(e.elements.popper),c,l),P=t(e.elements.reference),k=N({reference:P,element:E,strategy:"absolute",placement:a}),L=H(Object.assign({},E,k)),M="popper"===d?L:P,T={top:D.top-M.top+b.top,bottom:M.bottom-D.bottom+b.bottom,left:D.left-M.left+b.left,right:M.right-D.right+b.right},q=e.modifiersData.offset;if("popper"===d&&q){var A=q[a];Object.keys(T).forEach((function(e){var t=[x,w].indexOf(e)>=0?1:-1,n=[y,w].indexOf(e)>=0?"y":"x";T[e]+=A[n]*t}))}return T}var z="Popper: Invalid reference or popper argument provided. They must be either a DOM element or virtual element.",G={placement:"bottom",modifiers:[],strategy:"absolute",fixDistance:24};function X(){for(var e=arguments.length,t=new Array(e),n=0;n<e;n++)t[n]=arguments[n];return!t.some((function(e){return!(e&&"function"==typeof e.getBoundingClientRect)}))}function Y(e){void 0===e&&(e={});var t=e,n=t.defaultModifiers,r=void 0===n?[]:n,i=t.defaultOptions,a=void 0===i?G:i;return function(e,t,n){void 0===n&&(n=a);var i,s,f={placement:"bottom",orderedModifiers:[],options:Object.assign({},G,a),modifiersData:{},elements:{reference:e,popper:t},attributes:{},styles:{}},c=[],l=!1,m={state:f,setOptions:function(n){var i="function"==typeof n?n(f.options):n;v(),f.options=Object.assign({},a,f.options,i),f.scrollParents={reference:o(e)?h(e):e.contextElement?h(e.contextElement):[],popper:h(t)};var s=function(e){var t=P(e);return D.reduce((function(e,n){return e.concat(t.filter((function(e){return e.phase===n})))}),[])}(function(e){var t=e.reduce((function(e,t){var n=e[t.name];return e[t.name]=n?Object.assign({},n,t,{options:Object.assign({},n.options,t.options),data:Object.assign({},n.data,t.data)}):t,e}),{});return Object.keys(t).map((function(e){return t[e]}))}([].concat(r,f.options.modifiers)));(f.orderedModifiers=s.filter((function(e){return e.enabled})),function(e){e.forEach((function(t){[].concat(Object.keys(t),M).filter((function(e,t,n){return n.indexOf(e)===t})).forEach((function(n){switch(n){case"name":"string"!=typeof t.name&&console.error(k(L,String(t.name),'"name"','"string"','"'+String(t.name)+'"'));break;case"enabled":"boolean"!=typeof t.enabled&&console.error(k(L,t.name,'"enabled"','"boolean"','"'+String(t.enabled)+'"'));break;case"phase":D.indexOf(t.phase)<0&&console.error(k(L,t.name,'"phase"',"either "+D.join(", "),'"'+String(t.phase)+'"'));break;case"fn":"function"!=typeof t.fn&&console.error(k(L,t.name,'"fn"','"function"','"'+String(t.fn)+'"'));break;case"effect":null!=t.effect&&"function"!=typeof t.effect&&console.error(k(L,t.name,'"effect"','"function"','"'+String(t.fn)+'"'));break;case"requires":null==t.requires||Array.isArray(t.requires)||console.error(k(L,t.name,'"requires"','"array"','"'+String(t.requires)+'"'));break;case"requiresIfExists":Array.isArray(t.requiresIfExists)||console.error(k(L,t.name,'"requiresIfExists"','"array"','"'+String(t.requiresIfExists)+'"'));break;case"options":case"data":break;default:console.error('PopperJS: an invalid property has been provided to the "'+t.name+'" modifier, valid properties are '+M.map((function(e){return'"'+e+'"'})).join(", ")+'; but "'+n+'" was provided.')}t.requires&&t.requires.forEach((function(n){null==e.find((function(e){return e.name===n}))&&console.error(k('Popper: modifier "%s" requires "%s", but "%s" modifier is not available',String(t.name),n,n))}))}))}))}((l=[].concat(s,f.options.modifiers),u=function(e){return e.name},d=new Set,l.filter((function(e){var t=u(e);if(!d.has(t))return d.add(t),!0})))),"auto"===T(f.options.placement))&&(f.orderedModifiers.find((function(e){return"flip"===e.name}))||console.error(['Popper: "auto" placements require the "flip" modifier be',"present and enabled to work."].join(" ")));var l,u,d,g=p(t);return[g.marginTop,g.marginRight,g.marginBottom,g.marginLeft].some((function(e){return parseFloat(e)}))&&console.warn(['Popper: CSS "margin" styles cannot be used to apply padding',"between the popper and its reference element or boundary.","To replicate margin, use the `offset` modifier, as well as","the `padding` option in the `preventOverflow` and `flip`","modifiers."].join(" ")),f.orderedModifiers.forEach((function(e){var t=e.name,n=e.options,r=void 0===n?{}:n,o=e.effect;if("function"==typeof o){var i=o({state:f,name:t,instance:m,options:r});c.push(i||function(){})}})),m.update()},forceUpdate:function(e){if(!l){e&&(f.elements.reference=e);var t=f.elements,n=t.reference,r=t.popper;if(X(n,r)){f.rects={reference:u(n,b(r),"fixed"===f.options.strategy),popper:d(r)},f.reset=!1,f.placement=f.options.placement,f.orderedModifiers.forEach((function(e){return f.modifiersData[e.name]=Object.assign({},e.data)}));for(var o=0,i=0;i<f.orderedModifiers.length;i++){if((o+=1)>100){console.error("Popper: An infinite loop in the modifiers cycle has been detected! The cycle has been interrupted to prevent a browser crash.");break}if(!0!==f.reset){var a=f.orderedModifiers[i],s=a.fn,c=a.options,p=void 0===c?{}:c,h=a.name;"function"==typeof s&&(f=s({state:f,options:p,name:h,instance:m})||f)}else f.reset=!1,i=-1}}else console.error(z)}},update:(i=function(e){return new Promise((function(t){"object"==typeof e&&1===e.nodeType?m.forceUpdate(e):m.forceUpdate(),t(f)}))},function(e){return s||(s=new Promise((function(t){Promise.resolve().then((function(){s=void 0,t(i(e))}))}))),s}),destroy:function(){v(),l=!0}};if(!X(e,t))return console.error(z),m;function v(){c.forEach((function(e){return e()})),c=[]}return m.setOptions(n).then((function(e){!l&&n.onFirstUpdate&&n.onFirstUpdate(e)})),m}}var J={passive:!0};var K={name:"eventListeners",enabled:!0,phase:"write",fn:function(){},effect:function(e){var t=e.state,r=e.instance,o=e.options,i=o.scroll,a=void 0===i||i,s=o.resize,f=void 0===s||s,c=n(t.elements.popper),p=[].concat(t.scrollParents.reference,t.scrollParents.popper);return a&&p.forEach((function(e){e.addEventListener("scroll",r.update,J)})),f&&c.addEventListener("resize",r.update,J),function(){a&&p.forEach((function(e){e.removeEventListener("scroll",r.update,J)})),f&&c.removeEventListener("resize",r.update,J)}},data:{}};var Q={name:"popperOffsets",enabled:!0,phase:"read",fn:function(e){var t=e.state,n=e.name;t.modifiersData[n]=N({reference:t.rects.reference,element:t.rects.popper,strategy:"absolute",placement:t.placement})},data:{}},Z={top:"auto",right:"auto",bottom:"auto",left:"auto"};function $(e){var t,r=e.popper,o=e.popperRect,i=e.placement,a=e.variation,s=e.offsets,c=e.position,l=e.gpuAcceleration,u=e.adaptive,d=e.roundOffsets,m=!0===d?function(e){var t=e.x,n=e.y,r=window.devicePixelRatio||1;return{x:W(W(t*r)/r)||0,y:W(W(n*r)/r)||0}}(s):"function"==typeof d?d(s):s,h=m.x,v=void 0===h?0:h,g=m.y,j=void 0===g?0:g,E=s.hasOwnProperty("x"),S=s.hasOwnProperty("y"),D=O,P=y,k=window;if(u){var L=b(r),M="clientHeight",T="clientWidth";L===n(r)&&"static"!==p(L=f(r)).position&&"absolute"===c&&(M="scrollHeight",T="scrollWidth"),L=L,i!==y&&(i!==O&&i!==x||"end"!==a)||(P=w,j-=L[M]-o.height,j*=l?1:-1),i!==O&&(i!==y&&i!==w||"end"!==a)||(D=x,v-=L[T]-o.width,v*=l?1:-1)}var q,A=Object.assign({position:c},u&&Z);return l?Object.assign({},A,((q={})[P]=S?"0":"",q[D]=E?"0":"",q.transform=(k.devicePixelRatio||1)<=1?"translate("+v+"px, "+j+"px)":"translate3d("+v+"px, "+j+"px, 0)",q)):Object.assign({},A,((t={})[P]=S?j+"px":"",t[D]=E?v+"px":"",t.transform="",t))}var ee={name:"computeStyles",enabled:!0,phase:"beforeWrite",fn:function(e){var t=e.state,n=e.options,r=n.gpuAcceleration,o=void 0===r||r,i=n.adaptive,a=void 0===i||i,s=n.roundOffsets,f=void 0===s||s,c=p(t.elements.popper).transitionProperty||"";a&&["transform","top","right","bottom","left"].some((function(e){return c.indexOf(e)>=0}))&&console.warn(["Popper: Detected CSS transitions on at least one of the following",'CSS properties: "transform", "top", "right", "bottom", "left".',"\n\n",'Disable the "computeStyles" modifier\'s `adaptive` option to allow',"for smooth transitions, or remove these properties from the CSS","transition declaration on the popper element if only transitioning","opacity or background-color for example.","\n\n","We recommend using the popper element as a wrapper around an inner","element that can have any CSS property transitioned for animations."].join(" "));var l={placement:T(t.placement),variation:I(t.placement),popper:t.elements.popper,popperRect:t.rects.popper,gpuAcceleration:o};null!=t.modifiersData.popperOffsets&&(t.styles.popper=Object.assign({},t.styles.popper,$(Object.assign({},l,{offsets:t.modifiersData.popperOffsets,position:t.options.strategy,adaptive:a,roundOffsets:f})))),null!=t.modifiersData.arrow&&(t.styles.arrow=Object.assign({},t.styles.arrow,$(Object.assign({},l,{offsets:t.modifiersData.arrow,position:"absolute",adaptive:!1,roundOffsets:f})))),t.attributes.popper=Object.assign({},t.attributes.popper,{"data-placement":t.placement})},data:{}};var te={name:"applyStyles",enabled:!0,phase:"write",fn:function(e){var t=e.state;Object.keys(t.elements).forEach((function(e){var n=t.styles[e]||{},r=t.attributes[e]||{},o=t.elements[e];i(o)&&s(o)&&(Object.assign(o.style,n),Object.keys(r).forEach((function(e){var t=r[e];!1===t?o.removeAttribute(e):o.setAttribute(e,!0===t?"":t)})))}))},effect:function(e){var t=e.state,n={popper:{position:t.options.strategy,left:"0",top:"0",margin:"0"},arrow:{position:"absolute"},reference:{}};return Object.assign(t.elements.popper.style,n.popper),t.styles=n,t.elements.arrow&&Object.assign(t.elements.arrow.style,n.arrow),function(){Object.keys(t.elements).forEach((function(e){var r=t.elements[e],o=t.attributes[e]||{},a=Object.keys(t.styles.hasOwnProperty(e)?t.styles[e]:n[e]).reduce((function(e,t){return e[t]="",e}),{});i(r)&&s(r)&&(Object.assign(r.style,a),Object.keys(o).forEach((function(e){r.removeAttribute(e)})))}))}},requires:["computeStyles"]};var ne={name:"offset",enabled:!0,phase:"main",requires:["popperOffsets"],fn:function(e){var t=e.state,n=e.options,r=e.name,o=n.offset,i=void 0===o?[0,0]:o,a=S.reduce((function(e,n){return e[n]=function(e,t,n){var r=T(e),o=[O,y].indexOf(r)>=0?-1:1,i="function"==typeof n?n(Object.assign({},t,{placement:e})):n,a=i[0],s=i[1];return a=a||0,s=(s||0)*o,[O,x].indexOf(r)>=0?{x:s,y:a}:{x:a,y:s}}(n,t.rects,i),e}),{}),s=a[t.placement],f=s.x,c=s.y;null!=t.modifiersData.popperOffsets&&(t.modifiersData.popperOffsets.x+=f,t.modifiersData.popperOffsets.y+=c),t.modifiersData[r]=a}},re={left:"right",right:"left",bottom:"top",top:"bottom"};function oe(e){return e.replace(/left|right|bottom|top/g,(function(e){return re[e]}))}var ie={start:"end",end:"start"};function ae(e){return e.replace(/start|end/g,(function(e){return ie[e]}))}function se(e,t){void 0===t&&(t={});var n=t,r=n.placement,o=n.boundary,i=n.rootBoundary,a=n.padding,s=n.flipVariations,f=n.allowedAutoPlacements,c=void 0===f?S:f,p=I(r),l=p?s?E:E.filter((function(e){return I(e)===p})):j,u=l.filter((function(e){return c.indexOf(e)>=0}));0===u.length&&(u=l,console.error(["Popper: The `allowedAutoPlacements` option did not allow any","placements. Ensure the `placement` option matches the variation","of the allowed placements.",'For example, "auto" cannot be used to allow "bottom-start".','Use "auto-start" instead.'].join(" ")));var d=u.reduce((function(t,n){return t[n]=F(e,{placement:n,boundary:o,rootBoundary:i,padding:a})[T(n)],t}),{});return Object.keys(d).sort((function(e,t){return d[e]-d[t]}))}var fe={name:"flip",enabled:!0,phase:"main",fn:function(e){var t=e.state,n=e.options,r=e.name;if(!t.modifiersData[r]._skip){for(var o=n.mainAxis,i=void 0===o||o,a=n.altAxis,s=void 0===a||a,f=n.fallbackPlacements,c=n.padding,p=n.boundary,l=n.rootBoundary,u=n.altBoundary,d=n.flipVariations,m=void 0===d||d,h=n.allowedAutoPlacements,v=t.options.placement,g=T(v),b=f||(g===v||!m?[oe(v)]:function(e){if("auto"===T(e))return[];var t=oe(e);return[ae(e),t,ae(t)]}(v)),j=[v].concat(b).reduce((function(e,n){return e.concat("auto"===T(n)?se(t,{placement:n,boundary:p,rootBoundary:l,padding:c,flipVariations:m,allowedAutoPlacements:h}):n)}),[]),E=t.rects.reference,S=t.rects.popper,D=new Map,P=!0,k=j[0],L=0;L<j.length;L++){var M=j[L],q=T(M),A="start"===I(M),W=[y,w].indexOf(q)>=0,B=W?"width":"height",H=F(t,{placement:M,boundary:p,rootBoundary:l,altBoundary:u,padding:c}),C=W?A?x:O:A?w:y;E[B]>S[B]&&(C=oe(C));var R=oe(C),V=[];if(i&&V.push(H[q]<=0),s&&V.push(H[C]<=0,H[R]<=0),V.every((function(e){return e}))){k=M,P=!1;break}D.set(M,V)}if(P)for(var N=function(e){var t=j.find((function(t){var n=D.get(t);if(n)return n.slice(0,e).every((function(e){return e}))}));if(t)return k=t,"break"},U=m?3:1;U>0;U--){if("break"===N(U))break}t.placement!==k&&(t.modifiersData[r]._skip=!0,t.placement=k,t.reset=!0)}},requiresIfExists:["offset"],data:{_skip:!1}};function ce(e,t,n){return q(e,A(t,n))}var pe={name:"preventOverflow",enabled:!0,phase:"main",fn:function(e){var t=e.state,n=e.options,r=e.name,o=n.mainAxis,i=void 0===o||o,a=n.altAxis,s=void 0!==a&&a,f=n.boundary,c=n.rootBoundary,p=n.altBoundary,l=n.padding,u=n.tether,m=void 0===u||u,h=n.tetherOffset,v=void 0===h?0:h,g=F(t,{boundary:f,rootBoundary:c,padding:l,altBoundary:p}),j=T(t.placement),E=I(t.placement),S=!E,D=V(j),P="x"===D?"y":"x",k=t.modifiersData.popperOffsets,L=t.rects.reference,M=t.rects.popper,W="function"==typeof v?v(Object.assign({},t.rects,{placement:t.placement})):v,B={x:0,y:0};if(k){if(i||s){var H="y"===D?y:O,C="y"===D?w:x,R="y"===D?"height":"width",N=k[D],U=k[D]+g[H],_=k[D]-g[C],z=m?-M[R]/2:0,G="start"===E?L[R]:M[R],X="start"===E?-M[R]:-L[R],Y=t.elements.arrow,J=m&&Y?d(Y):{width:0,height:0},K=t.modifiersData["arrow#persistent"]?t.modifiersData["arrow#persistent"].padding:{top:0,right:0,bottom:0,left:0},Q=K[H],Z=K[C],$=ce(0,L[R],J[R]),ee=S?L[R]/2-z-$-Q-W:G-$-Q-W,te=S?-L[R]/2+z+$+Z+W:X+$+Z+W,ne=t.elements.arrow&&b(t.elements.arrow),re=ne?"y"===D?ne.clientTop||0:ne.clientLeft||0:0,oe=t.modifiersData.offset?t.modifiersData.offset[t.placement][D]:0,ie=k[D]+ee-oe-re,ae=k[D]+te-oe;if(i){var se=ce(m?A(U,ie):U,N,m?q(_,ae):_);k[D]=se,B[D]=se-N}if(s){var fe="x"===D?y:O,pe="x"===D?w:x,le=k[P],ue=le+g[fe],de=le-g[pe],me=ce(m?A(ue,ie):ue,le,m?q(de,ae):de);k[P]=me,B[P]=me-le}}t.modifiersData[r]=B}},requiresIfExists:["offset"]};var le={name:"arrow",enabled:!0,phase:"main",fn:function(e){var t,n=e.state,r=e.name,o=e.options,i=n.elements.arrow,a=n.modifiersData.popperOffsets,s=T(n.placement),f=V(s),c=[O,x].indexOf(s)>=0?"height":"width";if(i&&a){var p=function(e,t){return U("number"!=typeof(e="function"==typeof e?e(Object.assign({},t.rects,{placement:t.placement})):e)?e:_(e,j))}(o.padding,n),l=d(i),u="y"===f?y:O,m="y"===f?w:x,h=n.rects.reference[c]+n.rects.reference[f]-a[f]-n.rects.popper[c],v=a[f]-n.rects.reference[f],g=b(i),E=g?"y"===f?g.clientHeight||0:g.clientWidth||0:0,S=h/2-v/2,D=p[u],P=E-l[c]-p[m],k=null,L=n.rects.popper.width<n.rects.reference.width,M=n.rects.popper.height<n.rects.reference.height,q="top-start"==n.options.placement||"bottom-start"==n.options.placement,A="top-end"==n.options.placement||"bottom-end"==n.options.placement,W="left-start"==n.options.placement||"right-start"==n.options.placement,B="left-end"==n.options.placement||"right-end"==n.options.placement,H=ce(D,k=L&&q?n.options.fixDistance:L&&A?P-n.options.fixDistance:M&&W?n.options.fixDistance:M&&B?P-n.options.fixDistance:E/2-l[c]/2+S,P),C=f;n.modifiersData[r]=((t={})[C]=H,t.centerOffset=H-k,t)}},effect:function(e){var t=e.state,n=e.options.element,r=void 0===n?"[arrow]":n;null!=r&&("string"!=typeof r||(r=t.elements.popper.querySelector(r)))&&(i(r)||console.error(['Popper: "arrow" element must be an HTMLElement (not an SVGElement).',"To use an SVG arrow, wrap it in an HTMLElement that will be used as","the arrow."].join(" ")),B(t.elements.popper,r)?t.elements.arrow=r:console.error(['Popper: "arrow" modifier\'s `element` must be a child of the popper',"element."].join(" ")))},requires:["popperOffsets"],requiresIfExists:["preventOverflow"]};function ue(e,t,n){return void 0===n&&(n={x:0,y:0}),{top:e.top-t.height-n.y,right:e.right-t.width+n.x,bottom:e.bottom-t.height+n.y,left:e.left-t.width-n.x}}function de(e){return[y,x,w,O].some((function(t){return e[t]>=0}))}var me={name:"hide",enabled:!0,phase:"main",requiresIfExists:["preventOverflow"],fn:function(e){var t=e.state,n=e.name,r=t.rects.reference,o=t.rects.popper,i=t.modifiersData.preventOverflow,a=F(t,{elementContext:"reference"}),s=F(t,{altBoundary:!0}),f=ue(a,r),c=ue(s,o,i),p=de(f),l=de(c);t.modifiersData[n]={referenceClippingOffsets:f,popperEscapeOffsets:c,isReferenceHidden:p,hasPopperEscaped:l},t.attributes.popper=Object.assign({},t.attributes.popper,{"data-reference-hidden":p,"data-escaped":l})}},he=Y({defaultModifiers:[K,Q,ee,te]}),ve=[K,Q,ee,te,ne,fe,pe,le,me],ge=Y({defaultModifiers:ve});e.applyStyles=te,e.arrow=le,e.computeStyles=ee,e.createPopper=ge,e.createPopperLite=he,e.defaultModifiers=ve,e.detectOverflow=F,e.eventListeners=K,e.flip=fe,e.hide=me,e.offset=ne,e.popperGenerator=Y,e.popperOffsets=Q,e.preventOverflow=pe,Object.defineProperty(e,"__esModule",{value:!0})}));
 /*!
  * redux v4.1.2 from https://redux.js.org  |  AXUI增加了window变量，取消了isCrushed函数
  */
@@ -35,6 +36,7 @@ const axError = {
     arrayRequired: 'The value must be an array type!',
     noNode: 'This page can not find the node!',
     required: 'Required field is missing!',
+    notExist: 'The program cannot be executed because the object does not exist!',
 }
 /**
  * 定义判断是否是移动端函数，返回true或false 
@@ -104,15 +106,6 @@ const axStrToDom = (str) => {
     return div.firstElementChild;
 }
 /**
- * 不存在直接返回
- */
-const axFalseReturn = (obj, text) => {
-    if (!obj) {
-        text ? console.error(text) : console.error('The program cannot be executed because the object does not exist!');
-        return false;
-    }
-}
-/**
  * 将#id转成DOM，插件中常用
  */
 const axIdToDom = (elem) => {
@@ -163,6 +156,69 @@ const axArrToDom = (str, parent) => {
         }
     })
     return doms;
+}
+/**
+ * 防抖函数
+ * 使用表现：持续输入后延迟执行
+*/
+const axDebounce = (fn, delay = 200) => {
+    let timer = null,
+        handle = function () {
+            if (timer) clearTimeout(timer);
+            let _this = this,
+                _arguments = arguments;
+            timer = setTimeout(function () {
+                fn.apply(_this, _arguments);
+            }, delay);
+        }
+    handle.cancel = function () {
+        if (timer) clearTimeout(timer);
+    }
+    return handle;
+}
+/**
+ * 节流函数
+ * 使用表现：持续点击多次也只会按固定间隔时间执行
+*/
+const axThrottle = (fn, interval = 200) => {
+    let last = 0,
+        timer = null,
+        handle = function () {
+            let _this = this,
+                _arguments = arguments,
+                now = new Date().getTime();
+            if (now - last > interval) {
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                fn.apply(_this, _arguments);
+                last = now;
+            } else if (timer === null) {
+                timer = setTimeout(function () {
+                    timer = null;
+                    fn.apply(_this, _arguments);
+                }, interval);
+            }
+        }
+    handle.cancel = function () {
+        clearTimeout(timer);
+        timer = null;
+    }
+    return handle;
+}
+/**
+ * 数组元素移动位置
+ */
+const axMoveArr = (arr, from, to) => {
+    if (from > arr.length || to > arr.length || from < 0 || to < 0) {
+        console.error('Exceeded array length!');
+        return false;
+    }
+    let obj = arr[from];
+    arr.splice(from, 1);
+    arr.splice(to, 0, obj);
+    return arr;
 }
 /**
  * 判断元素以及其父元素是否可见
@@ -266,13 +322,14 @@ const axTypeIs = (type, obj) => {
  * 获得对象真正的类型
  */
 const axType = (obj) => Object.prototype.toString.call(obj).slice(8, -1);
-const axUlToArr = (element) => {
-    axFalseReturn(element);
-    let elem = axIdToDom(element);
+const axUlToArr = (element, start = 1, hold) => {
+    if (!element) { console.error(axError.notExist); return false; }
+    let elem = axIdToDom(element),
+        newId = start;
     let getChild = () => {
         let data = [];
-        axChildren(elem, 'li').forEach((item, index) => {
-            data.push(getJson(item, index));
+        axChildren(elem, 'li').forEach(item => {
+            data.push(getJson(item, newId++));
         });
         return data;
     }
@@ -284,14 +341,18 @@ const axUlToArr = (element) => {
             value = elem.firstElementChild.getAttribute('value').trim();
             obj = { "id": index, "name": name, "value": value };
         } else {
-            obj = { "id": index, "value": name };
+            if (hold) {
+                obj = { "id": index, "name": name };
+            } else {
+                obj = { "id": index, "value": name };
+            }
         }
         if (elem.querySelector('ul')) {
-            [...elem.querySelector('ul').children].forEach((item, index) => {
+            [...elem.querySelector('ul').children].forEach(item => {
                 if (!obj.children) {
                     obj.children = [];
                 }
-                obj.children.push(getJson(item, index));
+                obj.children.push(getJson(item, newId++));
             });
         }
         return obj;
@@ -301,13 +362,14 @@ const axUlToArr = (element) => {
 /**
  * 将下拉菜单Dom树转成对象数组格式：[{"value":""},{"value":""},"value":""]
  */
-const axSelectToArr = (element) => {
-    axFalseReturn(element);
-    let elem = axIdToDom(element);
+const axSelectToArr = (element, start = 1) => {
+    if (!element) { console.error(axError.notExist); return false; }
+    let elem = axIdToDom(element),
+        newId = start;
     let getChild = () => {
         let data = [];
-        [...elem.children].forEach((item, index) => {
-            data.push(getJson(item, index));
+        [...elem.children].forEach(item => {
+            data.push(getJson(item, newId++));
         });
         return data;
     }
@@ -324,11 +386,11 @@ const axSelectToArr = (element) => {
         }
         obj = { "id": index, "name": name, "value": value };
         if (elem.querySelector('option')) {
-            [...elem.children].forEach((item, index) => {
+            [...elem.children].forEach(item => {
                 if (!obj.children) {
                     obj.children = [];
                 }
-                obj.children.push(getJson(item, index));
+                obj.children.push(getJson(item, newId++));
             });
         }
         return obj;
@@ -338,13 +400,14 @@ const axSelectToArr = (element) => {
 /**
  * 从datalist中获取对象数组格式：[{"value":""},{"value":""}]
  */
-const axListToArr = (element) => {
-    axFalseReturn(element);
-    let elem = axIdToDom(element);
+const axListToArr = (element, start = 1) => {
+    if (!element) { console.error(axError.notExist); return false; }
+    let elem = axIdToDom(element),
+        newId = start;
     let getChild = () => {
         let data = [];
-        [...elem.children].forEach((item, index) => {
-            data.push(getJson(item, index));
+        [...elem.children].forEach(item => {
+            data.push(getJson(item, newId++));
         });
         return data;
     }
@@ -353,14 +416,28 @@ const axListToArr = (element) => {
             name = '',
             obj = {};
         name = elem.textContent.trim();
-        elem.getAttribute('value') ? value = elem.getAttribute('value').trim() : null;
-        obj = { "name": name, "value": value };
+        value = elem.getAttribute('value') ?  elem.getAttribute('value').trim() : name;
+        obj = { "id": index, "name": name, "value": value };
         if (!axIsEmpty(elem.dataset)) {
             Object.assign(obj, elem.dataset)
         }
         return obj;
     }
     return getChild();
+}
+/**
+ * 一维数组转tree数组，root为顶级id，通常是0
+ */
+const axArrToTree = (arr, start) => {
+    let root = start ? start : 0;
+    arr.forEach(item => {
+        let children = arr.filter(v => item.id === v.pId);
+        if(children.length){
+            item.children = children;
+        }
+    });
+    arr = arr.filter(i => i.pId == root);
+    return arr;
 }
 /**
  * 判断是否在元素矩形区域之外
@@ -382,7 +459,7 @@ const axIsOutside = (ev, id, ox, oy) => {
  * 封装getComputedStyle方法
  */
 const axStyle = (elem, pseudo) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     return document.defaultView.getComputedStyle(element, pseudo);
 }
@@ -401,8 +478,8 @@ const axInstance = (json, value) => {
  * 定义模板引擎
  */
 const axTplEngine = (html, data) => {
-    axFalseReturn(html, 'No html!')
-    let re = /<%([^%>]+)?%>/g,
+    if (!html) { console.error('No html!'); return false; }
+    let re = /<#([^#>]+)?#>/g,
         reExp = /(^( )?(if|for|else|switch|case|break|{|}))(.*)?/g,
         code = 'let r=[];\n',
         cursor = 0;
@@ -602,8 +679,8 @@ const axDataset = (element, obj) => {
                     value = JSON.parse(value);
                 } else if (value.replace(/\s*/g, "").indexOf('},{') != -1) {
                     value = JSON.parse('[' + value + ']');
-                }
-                if (integer.test(value) || float.test(value)) {
+                } 
+                if (typeof value == 'string' && ( integer.test(value) || float.test(value))) {
                     value = Number(value);
                 }
                 let split = name.split('-');
@@ -662,7 +739,7 @@ const axDataset = (element, obj) => {
  * 举例说明： <button data-name="" data-school="" data-teachers-mathematics-name=""></button>
  */
 const axExtend = (dft, user, element) => {
-    axFalseReturn(dft);
+    if (!dft) { console.error(axError.notExist); return false; }
     let elem = element ? axIdToDom(element) : null;
     axMerge(dft, user);
     axDataset(elem, dft);
@@ -724,7 +801,7 @@ const axAddElem = (node, options, content) => {
  * 给子元素新增父层元素，将其包裹住
  */
 const axAddWrap = (elem, wrap, node, options, content) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem),
         wrapper = '';
     if (wrap) {
@@ -848,7 +925,7 @@ const axHideSize = (parent, attrName, child) => {
  * 定义AJAX函数
  */
 const axAjax = (option, elem) => {
-    axFalseReturn(option, 'No options');
+    if (!option) { console.error('No options!'); return false; }
     let label = axAddElem('SPAN', { 'aria-label': 'loading' }),
         dom = elem ? axIdToDom(elem) : null;
     dom ? dom.appendChild(label) : null;
@@ -891,18 +968,19 @@ const axAjax = (option, elem) => {
             clearTimeout(timeout);
             if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
                 let div = document.createElement('div'),
-                    content = '';
+                    content = '',
+                    reg = /(<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>)|(<\/?html.*?>)|(<\/?body.*?>)/gi;
                 div.innerHTML = xhr.responseText;
                 if (dft.selector && div.querySelector(dft.selector)) {
                     content = div.querySelector(dft.selector).innerHTML;
                 } else if (dft.selector && !div.querySelector(dft.selector)) {
                     console.error(`The node of "${dft.selector}" is not exist!`);
-                    content = xhr.responseText;
+                    content = xhr.responseText.replace(reg,'').trim();
                 } else {
                     if (xhr.responseText.trim().substr(0, 1) == "{" || xhr.responseText.trim().substr(0, 1) == "[") {
                         content = JSON.parse(xhr.responseText.trim());
                     } else {
-                        content = xhr.responseText;
+                        content = xhr.responseText.replace(reg,'').trim();
                     }
                 }
                 dft.success.call(this, content, xhr.readyState, dom);
@@ -935,21 +1013,21 @@ const axAjax = (option, elem) => {
  * beforeFun是成功返回前的回调函数，选填项
  * successFun是成功返回后的回调函数，选填项
  */
-const axAjaxSubmit = (url, outer, target, successFun, loadingMode, type = 'post', delay, beforeFun, errorFun,options={}) => {
-    axFalseReturn(url, 'Url is required!');
-    axFalseReturn(outer, 'Form node is required!');
+const axAjaxSubmit = (url, outer, target, successFun, loadingMode, type = 'post', delay, beforeFun, errorFun, options = {}) => {
+    if (!url) { console.error('Url is required!'); return false; }
+    if (!outer) { console.error('Form node is required!'); return false; }
     let parentDom = axIdToDom(outer),
         targetDom = target ? axIdToDom(target) : null,
         targetText = targetDom ? targetDom.innerHTML : '',
         mode = loadingMode || 'button',
-        opt = Object.assign(options,{
-            formClass:'ax-form-submitting',
-            buttonClass:'ax-button-submitting',
-            buttonText:'正在提交',
-            overlayClass:'ax-form-overlay',
-            overlayShowClass:'ax-show',
-            successText:'恭喜！提交成功！',
-            errorText:'对不起，提交失败！',
+        opt = Object.assign(options, {
+            formClass: 'ax-form-submitting',
+            buttonClass: 'ax-button-submitting',
+            buttonText: '正在提交',
+            overlayClass: 'ax-form-overlay',
+            overlayShowClass: 'ax-show',
+            successText: '恭喜！提交成功！',
+            errorText: '对不起，提交失败！',
         }),
         overlayDom = parentDom.querySelector('.ax-form-overlay') ? parentDom.querySelector('.ax-form-overlay') : axAddElem('div', { class: 'ax-form-overlay' });
     if (parentDom.classList.contains(opt.formClass)) {
@@ -1017,7 +1095,7 @@ const axAjaxSubmit = (url, outer, target, successFun, loadingMode, type = 'post'
  * 获取距离body的上偏移和左偏移
  */
 const axOffset = (elem) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let totalLeft,
         totalTop,
         targetDom = axIdToDom(elem);
@@ -1032,7 +1110,7 @@ const axOffset = (elem) => {
  * 获得元素真实宽度，宽度构成包括：margin、padding、borderWidth、width
  */
 const axWidth = (elem, type) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let _elem = axIdToDom(elem);
     let { width, paddingLeft, paddingRight, marginLeft, marginRight, borderLeftWidth, borderRightWidth } = getComputedStyle(_elem);
     width = parseInt(width, 10);
@@ -1054,7 +1132,7 @@ const axWidth = (elem, type) => {
  * 获得元素真实高度，宽度构成包括：margin、padding、borderWidth、height
  */
 const axHeight = (elem, type) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let _elem = axIdToDom(elem);
     let { height, paddingTop, paddingBottom, marginTop, marginBottom, borderTopWidth, borderBottomWidth } = getComputedStyle(_elem);
     height = parseInt(height, 10);
@@ -1076,7 +1154,7 @@ const axHeight = (elem, type) => {
  * 获得元素高度构成部分，包括：height, paddingTop, paddingBottom, marginTop, marginBottom, borderTop, borderBottom
  */
 const axArrHeight = (elem) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let _elem = axIdToDom(elem);
     let { height, paddingTop, paddingBottom, marginTop, marginBottom, borderTopWidth, borderBottomWidth } = getComputedStyle(_elem);
     height = parseInt(height, 10);
@@ -1106,7 +1184,7 @@ const axArrHeight = (elem) => {
  *  判断是否选择了已知元素 ,返回 ture 或 false
  */
 const axSelector = (elem, selector) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let _elem = axIdToDom(elem);
     let result = true;
     if (selector) {
@@ -1151,7 +1229,7 @@ const axSelector = (elem, selector) => {
  * 判断是否排除了已知元素 ,返回 ture 或 false
  */
 const axNot = (elem, selector) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let _elem = axIdToDom(elem);
     let result = true;
     if (selector) {
@@ -1201,7 +1279,7 @@ const axNot = (elem, selector) => {
  * 举例：axSiblings(elem,'#my','.disabled')
  */
 const axSiblings = (element, self, selector, ignore) => {
-    axFalseReturn(element);
+    if (!element) { console.error(axError.notExist); return false; }
     let elem = axIdToDom(element);
     return [...elem.parentNode.children].filter((child) => {
         if (!self) {
@@ -1219,7 +1297,7 @@ const axSiblings = (element, self, selector, ignore) => {
  * 举例：axChildren(elem,'.item','.disabled')
  */
 const axChildren = (element, selector, ignore) => {
-    axFalseReturn(element);
+    if (!element) { console.error(axError.notExist); return false; }
     let elem = axIdToDom(element);
     return [...elem.children].filter((child) => {
         return axSelector(child, selector) && !axNot(child, ignore);
@@ -1234,7 +1312,7 @@ const axChildren = (element, selector, ignore) => {
  * parents：父节点数组
  */
 const axParents = (start, end, containStart, containEnd, parents = []) => {
-    axFalseReturn(start, 'No node to start!');
+    if (!start) { console.error('No node to start!'); return false; }
     let _start = axIdToDom(start),
         _end = end ? axIdToDom(end) : null;
     if (_start.parentElement.nodeName !== 'BODY') {
@@ -1271,7 +1349,7 @@ const axCurves = {
  * 举例：axSlideDown(elem,200,'easeOut')
  */
 const axSlideDown = (elem, callback, duration, curve = 'easeOut') => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     let dftTime = height => height / 3 + 250;
     if (window.getComputedStyle(element).display === "none") {
@@ -1313,7 +1391,7 @@ const axSlideDown = (elem, callback, duration, curve = 'easeOut') => {
  * 不判断元素是否隐藏的下拉展开动画
  */
 const axHeightDown = (elem, arrHeight, callback, duration, curve = 'easeOut') => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     let dftTime = height => height / 3 + 250;
     const height = (arrHeight && arrHeight.height) ? arrHeight.height : axArrHeight(element).height,
@@ -1370,7 +1448,7 @@ const axHeightDown = (elem, arrHeight, callback, duration, curve = 'easeOut') =>
  * 举例：axSlideUp(elem,200,'easeOut')
  */
 const axSlideUp = (elem, callback, duration, curve = 'easeOut') => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     let dftTime = height => height / 3 + 250;
     if (window.getComputedStyle(element).display !== "none") {
@@ -1411,7 +1489,7 @@ const axSlideUp = (elem, callback, duration, curve = 'easeOut') => {
  * 不判断元素是否隐藏的上拉隐藏动画
  */
 const axHeightUp = (elem, arrHeight, callback, duration, curve = 'easeOut') => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     let dftTime = height => height / 3 + 250;
     const height = (arrHeight && arrHeight.height) ? arrHeight.height : axArrHeight(element).height,
@@ -1463,7 +1541,7 @@ const axHeightUp = (elem, arrHeight, callback, duration, curve = 'easeOut') => {
  * 举例：axSlideToggle(elem,200,'easeOut')
  */
 const axSlideToggle = (elem, downCallback, upCallback, duration, curve = 'easeOut') => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     if (window.getComputedStyle(element).display === 'none') {
         axSlideDown(element, downCallback, duration, curve);
@@ -1476,14 +1554,14 @@ const axSlideToggle = (elem, downCallback, upCallback, duration, curve = 'easeOu
  * 定义axFadeIn动画
  * 举例：axFadeIn(elem,200,'linear')
  */
-const axFadeIn = (elem, duration = 200, curve = 'linear') => {
-    axFalseReturn(elem);
+const axFadeIn = (elem, dis, callback, duration = 200, curve = 'linear') => {
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     if (element) {
         let display = window.getComputedStyle(element).display,
             opacity = window.getComputedStyle(element).opacity;
         if (display === 'none') {
-            element.style.display = 'block';
+            element.style.display = !dis ? 'block' : dis;
             element.style.opacity = 0;
             let initTime = new Date().getTime();
             let repeat = () => {
@@ -1491,10 +1569,10 @@ const axFadeIn = (elem, duration = 200, curve = 'linear') => {
                     timestep = newTime / duration,
                     step = axCurves[curve](timestep);
                 if (newTime <= duration && step <= 1) {
-                    element.style.display = 'block';
+                    element.style.display = !dis ? 'block' : dis;
                     element.style.opacity = step;
                 } else {
-                    element.style.display = 'block';
+                    element.style.display = !dis ? 'block' : dis;
                     element.style.opacity = 1;
                 }
                 let repeatLoop = requestAnimationFrame(repeat);
@@ -1524,14 +1602,15 @@ const axFadeIn = (elem, duration = 200, curve = 'linear') => {
             repeat();
         }
     }
+    callback && callback();
     return element;
 };
 /**
  * 定义axFadeOut动画
  * 举例：axFadeOut(elem,200,'linear')
  */
-const axFadeOut = (elem, duration = 200, curve = 'linear') => {
-    axFalseReturn(elem);
+const axFadeOut = (elem, callback, duration = 200, curve = 'linear') => {
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     if (element) {
         let display = window.getComputedStyle(element).display,
@@ -1557,26 +1636,27 @@ const axFadeOut = (elem, duration = 200, curve = 'linear') => {
             repeat();
         }
     }
+    callback && callback();
     return element;
 };
 /**
  * 定义axFadeToggle动画
  * 举例：axFadeToggle(elem,200,'linear')
  */
-const axFadeToggle = (elem, duration = 200, curve = 'linear') => {
-    axFalseReturn(elem);
+const axFadeToggle = (elem, dis, inCallback, outCallback, duration = 200, curve = 'linear') => {
+    if (!elem) { console.error(axError.notExist); return false; }
     let element = axIdToDom(elem);
     if (element) {
         let display = window.getComputedStyle(element).display;
         let opacity = window.getComputedStyle(element).opacity;
         if (display === 'none') {
-            axFadeIn(element, duration, curve);
+            axFadeIn(element, dis, inCallback, duration, curve);
         } else if (Number(opacity) <= 0.5) {
-            axFadeIn(element, duration, curve);
+            axFadeIn(element, dis, inCallback, duration, curve);
         } else if (Number(opacity) > 0.5) {
-            axFadeOut(element, duration, curve);
+            axFadeOut(element, outCallback, duration, curve);
         } else {
-            axFadeOut(element, duration, curve);
+            axFadeOut(element, outCallback, duration, curve);
         }
     }
     return element;
@@ -1586,7 +1666,7 @@ const axFadeToggle = (elem, duration = 200, curve = 'linear') => {
  * 举例：axShow(elem,show,callback)
  */
 const axShow = (element, show, callback) => {
-    axFalseReturn(element);
+    if (!element) { console.error(axError.notExist); return false; }
     let elem = axIdToDom(element);
     if (show == 'visible') {
         elem.style.visibility = 'visible';
@@ -1602,7 +1682,7 @@ const axShow = (element, show, callback) => {
  * 举例：axHide(elem,hide,callback)
  */
 const axHide = (element, hide, callback) => {
-    axFalseReturn(element);
+    if (!element) { console.error(axError.notExist); return false; }
     let elem = axIdToDom(element);
     if (hide == 'hidden') {
         elem.style.visibility = 'hidden';
@@ -1615,10 +1695,10 @@ const axHide = (element, hide, callback) => {
  * 元素显示隐藏切换，show和hide参数如上面两个函数所述
  * 举例: axToggle(elem,show,hide)
  */
-const axToggle = (element, show, hide) => {
-    axFalseReturn(element);
+const axToggle = (element, show, hide, showCallback, hideCallback) => {
+    if (!element) { console.error(axError.notExist); return false; }
     let elem = axIdToDom(element);
-    axIsVisible(elem) ? axHide(elem, hide) : axShow(elem, show);
+    axIsVisible(elem) ? axHide(elem, hide, hideCallback) : axShow(elem, show, showCallback);
 }
 /**
  * 页面锚记滚动
@@ -1684,7 +1764,7 @@ const axImage = {
  * 定义结果函数
  */
 const axResult = (elem, state) => {
-    axFalseReturn(elem);
+    if (!elem) { console.error(axError.notExist); return false; }
     let dom = axIdToDom(elem),
         svg = '';
     switch (state) {
@@ -2964,11 +3044,6 @@ const axValidRepeat = (e, data, outer, callback, interval = 100) => {
     }).forEach(item => {
         new axValid(item);
     });
-    document.addEventListener("submit", function (e) {
-        setTimeout(() => {
-            console.log('xxxxxxxxxx')
-        }, 200)
-    })
     if (!axIsEmpty(axValids)) {
         let formValids = [...axValids];
         formValids.forEach(item => {
@@ -3637,15 +3712,15 @@ class axDrawer {
     createTemplate() {
         return `
                     <div class="ax-drawer" data-overlay="true" id="${axCreateId('drawer')}">
-                        <% if(this.overlay){ %><div class="ax-drawer-overlay" <% if(this.overlayClose){ %>close<% } %>></div><% } %>
+                        <# if(this.overlay){ #><div class="ax-drawer-overlay" <# if(this.overlayClose){ #>close<# } #>></div><# } #>
                         <div class="ax-drawer-wrapper">
-                            <% if(this.close){ %> <a href="###" class="ax-drawer-close" close><i class="ax-iconfont ax-icon-close"></i></a><% } %>
-                            <% if(this.title){ %><div class="ax-drawer-header"><div class="ax-col ax-align-center"><% this.title %></div></div><% } %>
-                            <% if(this.title && this.titleBreak){ %><div class="ax-break-line"></div><% } %>
+                            <# if(this.close){ #> <a href="###" class="ax-drawer-close" close><i class="ax-iconfont ax-icon-close"></i></a><# } #>
+                            <# if(this.title){ #><div class="ax-drawer-header"><div class="ax-col ax-align-center"><# this.title #></div></div><# } #>
+                            <# if(this.title && this.titleBreak){ #><div class="ax-break-line"></div><# } #>
                             <div class="ax-drawer-body">
-                                <% if(this.padding){ %><div class="<% this.padding %>" <% if(this.type == 'iframe'){ %>style="height:100%;"<% } %>> <% } %>
-                                    <div class="ax-drawer-content" <% if(this.type == 'iframe'){ %>style="height:100%;"<% } %>><% this.content %></div>
-                                <% if(this.padding){ %></div><% } %>
+                                <# if(this.padding){ #><div class="<# this.padding #>" <# if(this.type == 'iframe'){ #>style="height:100%;"<# } #>> <# } #>
+                                    <div class="ax-drawer-content" <# if(this.type == 'iframe'){ #>style="height:100%;"<# } #>><# this.content #></div>
+                                <# if(this.padding){ #></div><# } #>
                             </div>
                             <div class="ax-drawer-footer">
                             </div>
@@ -3843,9 +3918,7 @@ class axDrawer {
             eachInstance(instance.targetDom.querySelectorAll('[axDrawer]'), instance);
         });
     }
-    let arrInstance = [...document.querySelectorAll('[axDrawer]')].filter(item => {
-        return axIsVisible(item);
-    });
+    let arrInstance = document.querySelectorAll('[axDrawer]');
     eachInstance(arrInstance);
 })();
 /*!
@@ -4013,15 +4086,15 @@ class axDialog {
     createTemplate() {
         return `
         <div class="ax-dialog" data-overlay="true" id="${axCreateId('dialog')}">
-        <% if(this.overlay){ %><div class="ax-dialog-overlay" <% if(this.overlayClose){ %>close<% } %>></div><% } %>
+        <# if(this.overlay){ #><div class="ax-dialog-overlay" <# if(this.overlayClose){ #>close<# } #>></div><# } #>
             <div class="ax-dialog-wrapper">
-                <% if(this.close){ %><a href="###" class="ax-dialog-close" close><i class="ax-iconfont ax-icon-close"></i></a><% } %>
-                <% if(this.title){ %><div class="ax-dialog-header"><% this.title %></div><% } %>
-                <% if(this.titleBreak){ %><div class="ax-break-line"></div><% } %>
+                <# if(this.close){ #><a href="###" class="ax-dialog-close" close><i class="ax-iconfont ax-icon-close"></i></a><# } #>
+                <# if(this.title){ #><div class="ax-dialog-header"><# this.title #></div><# } #>
+                <# if(this.titleBreak){ #><div class="ax-break-line"></div><# } #>
                 <div class="ax-dialog-body">
-                    <% if(typeof this.padding == 'string'){ %><div class="<% this.padding %>"> <% }else if(this.padding){ %><div class="ax-padding"> <% } %>
-                    <div class="ax-dialog-content"><% this.content %></div>
-                    <% if(this.padding){ %></div><% } %>
+                    <# if(typeof this.padding == 'string'){ #><div class="<# this.padding #>"> <# }else if(this.padding){ #><div class="ax-padding"> <# } #>
+                    <div class="ax-dialog-content"><# this.content #></div>
+                    <# if(this.padding){ #></div><# } #>
                 </div>
                 <div class="ax-dialog-footer">
                 </div>
@@ -4221,13 +4294,11 @@ class axDialog {
             eachInstance(instance.targetDom.querySelectorAll('[axDialog]'), instance);
         });
     }
-    let arrInstance = [...document.querySelectorAll('[axDialog]')].filter(item => {
-        return axIsVisible(item);
-    });
+    let arrInstance = document.querySelectorAll('[axDialog]');
     eachInstance(arrInstance);
 })();
 /*!
-* 插件：气泡弹窗；使用方法：new axHover('#id',{参数})
+* 插件：气泡弹窗；使用方法：new axPopup('#id',{参数})
 */
 const axPopups = [];
 class axPopup {
@@ -4257,7 +4328,7 @@ class axPopup {
             content: '',
             type: 'html',
             url: '',
-            btnClass:'ax-popup-open',
+            btnClass: 'ax-popup-open',
             close: true,
             footerShow: true,
             footerType: 'line',
@@ -4267,7 +4338,7 @@ class axPopup {
                 text: '确定',
                 classname: '',
                 icon: '',
-                type:'close',
+                type: 'close',
                 url: '',
                 callback: ''
             },
@@ -4291,6 +4362,7 @@ class axPopup {
         this.form = null;
         this.button = axIdToDom(elem);
         this.button && !!this.button.getAttribute('axPopup') ? this.referName = this.button.getAttribute('axPopup') : this.referName = '';
+        this.isShow = false;
         this.init();
         this.showEvent();
     }
@@ -4334,7 +4406,7 @@ class axPopup {
                     if (_this.form && _this.options.type == 'form' && _this.options.confirm.url) {
                         axValidRepeat(e, axValids, _this.form, function () {
                             axAjaxSubmit(_this.options.confirm.url, _this.form, button, function (content) {
-                                _this.options.confirm.callback && _this.options.confirm.callback.call(_this,content);
+                                _this.options.confirm.callback && _this.options.confirm.callback.call(_this, content);
                             });
                         })
                     } else {
@@ -4348,12 +4420,12 @@ class axPopup {
             };
         });
         this.targetDom.querySelectorAll('[diy]').forEach(elem => {
-            elem.onclick =function () {
-                _this.options.diy.callback &&  _this.options.diy.callback.call(_this);
+            elem.onclick = function () {
+                _this.options.diy.callback && _this.options.diy.callback.call(_this);
             };
         });
         this.targetDom.querySelectorAll('[cancel]').forEach(elem => {
-            elem.onclick=function () {
+            elem.onclick = function () {
                 _this.hide();
                 _this.options.cancel.callback && _this.options.cancel.callback.call(_this);
             };
@@ -4372,19 +4444,19 @@ class axPopup {
         return `
                             <div class="ax-popup" id="popup${new Date().getTime()}">
                                 <div class="ax-popup-wrapper">
-                                    <% if(this.close){ %><a href="###" class="ax-close" close></a><% } %>
-                                    <% if(this.title){ %><div class="ax-popup-header"><% this.title %></div><% } %>
-                                    <% if(this.titleBreak){ %><div class="ax-break-line"></div><% } %>
+                                    <# if(this.close){ #><a href="###" class="ax-close" close></a><# } #>
+                                    <# if(this.title){ #><div class="ax-popup-header"><# this.title #></div><# } #>
+                                    <# if(this.titleBreak){ #><div class="ax-break-line"></div><# } #>
                                     <div class="ax-popup-body">
-                                        <% if(typeof this.padding == 'string'){ %><div class="<% this.padding %>"> <% }else if(this.padding){ %><div class="ax-padding"> <% } %>
-                                        <% this.media %>
-                                        <div class="ax-popup-content"><% this.content %></div>
-                                        <% if(this.padding){ %></div><% } %>
+                                        <# if(typeof this.padding == 'string'){ #><div class="<# this.padding #>"> <# }else if(this.padding){ #><div class="ax-padding"> <# } #>
+                                        <# this.media #>
+                                        <div class="ax-popup-content"><# this.content #></div>
+                                        <# if(this.padding){ #></div><# } #>
                                     </div>
                                     <div class="ax-popup-footer">
                                     </div>
                                 </div>
-                                <% if(this.arrow && this.placement!=='center' && !axIsMobi()){ %><i arrow></i><% } %>
+                                <# if(this.arrow && this.placement!=='center' && !axIsMobi()){ #><i arrow></i><# } #>
                             </div>
                             `
     }
@@ -4489,7 +4561,7 @@ class axPopup {
                     _this.hide();
                 },
                 hold: _this.targetDom,
-            })
+            });
         } else if (this.options.trigger == 'input') {
             this.button.addEventListener('input', () => {
                 if (!_this.button.value) {
@@ -4498,6 +4570,8 @@ class axPopup {
                     _this.show();
                 }
             }, false);
+        } else if (this.options.trigger == 'sticky') {
+            this.show();
         }
         if (this.options.pageClose && !_this.options.multiple) {
             document.addEventListener('click', (ev) => {
@@ -4556,6 +4630,14 @@ class axPopup {
         'updated' in this.handlers ? this.emit('updated', '') : null;
         return this;
     }
+    updatePosition(obj, callback) {
+        'update' in this.handlers ? this.emit('update', '') : null;
+        let newButton = axIdToDom(obj);
+        this.popper.update(newButton);
+        callback && callback.call(this);
+        'updated' in this.handlers ? this.emit('updated', '') : null;
+        return this;
+    }
     show(callback) {
         this.popper.update();
         this.delete ? console.error('Instance is destroyed!') : null;
@@ -4570,6 +4652,7 @@ class axPopup {
             this.options.in ? this.targetDom.style.animationName = this.options.in : null;
         }
         this.targetDom.style.cssText += `;${this.oldStyle}`;
+        this.isShow = true;
         callback && callback.call(this);
         'shown' in this.handlers ? this.emit('shown', '') : null;
         return this;
@@ -4593,6 +4676,7 @@ class axPopup {
             this.targetDom.querySelectorAll('video,audio').forEach(elem => {
                 elem.pause();
             });
+            this.isShow = false;
             callback && callback.call(this);
         }
         return this;
@@ -4622,10 +4706,68 @@ class axPopup {
             eachInstance(instance.targetDom.querySelectorAll('[axPopup]'), instance);
         });
     }
-    let arrInstance = [...document.querySelectorAll('[axPopup]')].filter(item => {
-        return axIsVisible(item);
-    });
+    let arrInstance = document.querySelectorAll('[axPopup]');
     eachInstance(arrInstance);
+})();
+/*!
+ * 插件：小窗文字提示；使用方法：axTooltip('#id',{参数})
+ */
+class axTooltip {
+    constructor(elem, options) {
+        this.button = axIdToDom(elem);
+        this.options = axExtend({
+            placement: 'top', 
+            arrow: true, 
+            trigger: 'hover', 
+            size: '', 
+            multiple: true, 
+            theme: 'dark', 
+            content: '', 
+        }, options, this.button);
+        this.init();
+    }
+    init() {
+        if (this.button.getAttribute('axTooltip')) {
+            this.options.content = this.button.getAttribute('axTooltip');
+        }
+        let popOptions = Object.assign({
+            type: 'html',
+            close: false,
+            footerShow: false,
+            padding: false,
+        }, this.options);
+        this.popup = new axPopup(this.button, popOptions);
+        this.content = this.popup.content;
+        this.setAttribute();
+    }
+    setAttribute() {
+        this.popup.targetDom.classList.add('ax-tooltip');
+        if (this.options.theme) {
+            this.popup.targetDom.setAttribute('theme', this.options.theme)
+        }
+    }
+    updateContent(str,callback){
+        this.content.innerHTML = str;
+        callback && callback.call(this, update, before, this.content.innerHTML, this.options.content);
+        'updated' in this.handlers ? this.emit('updated', '') : null;
+        return this;
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
+    document.querySelectorAll('[axTooltip]').forEach(element => {
+        new axTooltip(element);
+    });
 })();
 /*!
 * 插件：即时消息/警告小窗；使用方法：new axMessage({参数})
@@ -4701,9 +4843,9 @@ class axMessage {
             this.template = axTplEngine(`
             <section data-style="simple">
                 <div class="ax-message-content">
-                    <% if(this.iconShow){ %><span class="ax-message-icon"><% this.icon %></span><% } %>
-                    <div class="ax-message-body"><% this.content %></div>
-                    <% if(this.close){ %><a href="###" class="ax-close"></a> <% } %>
+                    <# if(this.iconShow){ #><span class="ax-message-icon"><# this.icon #></span><# } #>
+                    <div class="ax-message-body"><# this.content #></div>
+                    <# if(this.close){ #><a href="###" class="ax-close"></a> <# } #>
                 </div>
             </section>
             `, this.options);
@@ -4712,12 +4854,12 @@ class axMessage {
             <section data-style="complex">
                 <div class="ax-message-content">
                     <div class="ax-message-header">
-                    <% if(this.iconShow){ %><span class="ax-message-icon ax-result ax-result-show"><% this.icon %></span><% } %>
-                    <span class="ax-message-title"><% if(this.result == 'success'){ %> <% this.title.success %> <% }else if(this.result == 'error'){ %> <% this.title.error %> <% }else if(this.result == 'question'){%> <% this.title.question %> <% }else if(this.result == 'warning'){%> <% this.title.warning %> <% } else {%> <% this.title.info %> <% } %></span></div>
-                    <div class="ax-message-body"><% this.content %></div>
+                    <# if(this.iconShow){ #><span class="ax-message-icon ax-result ax-result-show"><# this.icon #></span><# } #>
+                    <span class="ax-message-title"><# if(this.result == 'success'){ #> <# this.title.success #> <# }else if(this.result == 'error'){ #> <# this.title.error #> <# }else if(this.result == 'question'){#> <# this.title.question #> <# }else if(this.result == 'warning'){#> <# this.title.warning #> <# } else {#> <# this.title.info #> <# } #></span></div>
+                    <div class="ax-message-body"><# this.content #></div>
                 </div>
-                <% if(this.close){ %><a href="###" class="ax-close"></a> <% } %>
-                <% if(this.progress){ %><div class="ax-message-progress" style="transition-duration:<% this.delay %>ms;"></div><% } %>
+                <# if(this.close){ #><a href="###" class="ax-close"></a> <# } #>
+                <# if(this.progress){ #><div class="ax-message-progress" style="transition-duration:<# this.delay #>ms;"></div><# } #>
             </section>
             `, this.options);
         }
@@ -5511,14 +5653,14 @@ const axScrollSelects = [];
             }
             this.template =
                 axTplEngine(`
-            <div class="ax-scrollSelect<% if(this.className){ %> <% this.className %><% } %>" data-type="<% this.type %>" id="scrollSelect${new Date().getTime()}">
-            <% if(this.type == 'actionbar'){ %><div class="ax-scrollSelect-overlay"></div><% } %>
+            <div class="ax-scrollSelect<# if(this.className){ #> <# this.className #><# } #>" data-type="<# this.type #>" id="scrollSelect${new Date().getTime()}">
+            <# if(this.type == 'actionbar'){ #><div class="ax-scrollSelect-overlay"></div><# } #>
             <div class="ax-scrollSelect-wrapper">
                 <div class="ax-scrollSelect-header">
                     <div class="ax-inner">
-                        <a href="###" class="ax-cancel"><% this.cancelText %></a>
-                        <div class="ax-title"><% this.title %></div>
-                        <a href="###" class="ax-confirm"><% this.confirmText %></a>
+                        <a href="###" class="ax-cancel"><# this.cancelText #></a>
+                        <div class="ax-title"><# this.title #></div>
+                        <a href="###" class="ax-confirm"><# this.confirmText #></a>
                     </div>
                 </div>
                 <div class="ax-group"></div>
@@ -9418,13 +9560,13 @@ class axShare {
     });
 })();
 /*!
-* 插件：表单数量步进增减；使用方法：new axComplete('#id',{参数})
+* 插件：自动完成插件；使用方法：new axComplete('#id',{参数})
 */
 class axComplete {
     constructor(elem, options) {
         this.options = axExtend({
             list: '',
-            keys: [],
+            keys: ['name'],
             threshold: 0.6,
             isCaseSensitive: false,
             hasMatches: true,
@@ -9436,11 +9578,12 @@ class axComplete {
             tips: 'inside',
             highlight: true,
             rel: '',
-            fill: ''
+            fill: 'name',
+            idStart: 1,
         }, options, elem);
-        /* data:[{name:'张三',age:''},
-          {name:'李四',age:''},
-          {name:'王五',age:''},] 
+        /* data:[{id:1,name:'张三',value:'张三',age:''},
+          {id:2,name:'李四',value:'李四',age:''},
+          {id:3,name:'王五',value:'王五',age:''},] 
           keys:['name','age']
           */
         this.input = axIdToDom(elem);
@@ -9461,38 +9604,24 @@ class axComplete {
         } else {
             this.outerDom.insertAdjacentElement('afterbegin', this.tipsDom);
         }
+        this.data = [];
         this.init();
     }
     init() {
         let _this = this;
-        this.data = [];
-        if (typeof this.options.list == 'string' && this.options.list.substr(0, 1) == '#') {
-            this.data = axListToArr(this.options.list);
-        } else if (typeof this.options.list == 'string') {
-            this.data = this.options.list.split(',');
-        } else if (this.options.list instanceof Array) {
-            this.data = this.options.list;
-        }
+        this.getData();
         if (axIsEmpty(this.data)) {
+            console.error('There is no valid data!')
             return false;
-        }
-        if (Object.keys(this.data[0])[0] == '0') {
-            let newData = [];
-            this.data.forEach((item) => {
-                let obj = {};
-                obj.name = item;
-                newData.push(obj);
-            });
-            this.data = newData;
         }
         this.fuseOpt = { includeScore: true };
         this.fuseOpt.threshold = this.options.threshold;
         this.fuseOpt.includeMatches = this.options.hasMatches;
         this.fuseOpt.minMatchCharLength = this.options.minLength;
         this.fuseOpt.findAllMatches = this.options.findAll;
-        if (Object.keys(this.data[0])[0] && axIsEmpty(this.options.keys)) {
+        if (axIsEmpty(this.options.keys)) {
             this.fuseOpt.keys = ['name'];
-        } else if (Object.keys(this.data[0])[0] && !axIsEmpty(this.options.keys)) {
+        } else {
             this.fuseOpt.keys = this.options.keys;
         }
         this.initList();
@@ -9504,22 +9633,22 @@ class axComplete {
                 _this.tipsDom.innerHTML = `共有${_this.results.length}个结果符合要求`
             }
             if (_this.options.highlight) {
-                _this.results.forEach((item, index) => {
+                _this.results.forEach((i, index) => {
                     let matchItem = _this.innerDom.querySelectorAll('[role="item"]')[index],
                         matchName = matchItem.querySelector('[role="name"]').innerHTML;
-                    item.matches[0].indices.forEach(element => {
+                    i.matches[0].indices.forEach(element => {
                         let separate = matchName.substring(element[0], element[1] + 1),
                             matchArray = matchName.split(separate),
                             newString = matchArray.join('<i class="ax-mark">' + separate + '</i>');
                         matchItem.querySelector('[role="name"]').innerHTML = newString;
                     });
                     matchItem.onclick = function () {
-                        if (_this.options.fill && Object.keys(item.item).indexOf(_this.options.fill) > -1) {
-                            _this.input.value = item.item[_this.options.fill];
-                            'selected' in _this.handlers ? _this.emit('selected', item.item[_this.options.fill]) : null;
+                        if (_this.options.fill && Object.keys(i.item).indexOf(_this.options.fill) > -1) {
+                            _this.input.value = i.item[_this.options.fill];
+                            'selected' in _this.handlers ? _this.emit('selected', i.item) : null;
                         } else {
-                            _this.input.value = Object.values(item.item)[0];
-                            'selected' in _this.handlers ? _this.emit('selected', Object.values(item.item)[0]) : null;
+                            _this.input.value = i.item.name;
+                            'selected' in _this.handlers ? _this.emit('selected', i.item) : null;
                         }
                         _this.popup.hide();
                     }
@@ -9527,11 +9656,46 @@ class axComplete {
             }
             if (!this.value) {
                 _this.tipsDom.innerHTML = '';
-                setTimeout(function () {
-                    _this.initList();
-                }, 50);
+                axDebounce(_this.initList());
             }
         }, false);
+    }
+    getData() {
+        if (typeof this.options.list == 'string') {
+            if (this.options.list.substr(0, 1) == '#') {
+                this.data = axListToArr(this.options.list, this.options.idStart);
+            } else {
+                let splitArr = this.options.list.split(','),
+                    newArr = [];
+                splitArr.forEach((item, index) => {
+                    let obj = {};
+                    obj.id = this.options.idStart + index;
+                    obj.name = item;
+                    obj.value = item;
+                    newArr.push(obj);
+                });
+                this.data = newArr;
+            }
+        } else if (this.options.list instanceof Array) {
+            if (typeof this.options.list[0] == 'object') {
+                this.options.list.forEach((item, index) => {
+                    !item.id ? item.id = this.options.idStart + index : null;
+                    !item.value ? item.value = item.name : null;
+                });
+                this.data = this.options.list;
+            } else if (typeof this.options.list[0] == 'string') {
+                let newArr = [];
+                this.options.list.forEach((item, index) => {
+                    let obj = {};
+                    obj.id = this.options.idStart + index;
+                    obj.name = item;
+                    obj.value = item;
+                    newArr.push(obj);
+                });
+                this.data = newArr;
+            }
+        }
+        return this.data;
     }
     createPopup() {
         return new axPopup(this.input, {
@@ -9575,7 +9739,7 @@ class axComplete {
                 if (_this.options.fill && Object.keys(_this.data[index]).indexOf(_this.options.fill) > -1) {
                     _this.input.value = _this.data[index][_this.options.fill];
                 } else {
-                    _this.input.value = Object.values(_this.data[index])[0];
+                    _this.input.value = _this.data[index].name;
                 }
                 _this.popup.hide();
             }
@@ -9583,9 +9747,9 @@ class axComplete {
     }
     initDom() {
         let initData = [];
-        this.data.forEach(item => {
+        this.data.forEach(i => {
             let newItem = {};
-            newItem.item = item;
+            newItem.item = i;
             initData.push(newItem);
         });
         let template = '';
@@ -9608,7 +9772,7 @@ class axComplete {
         } else {
             return `<a href="###" class="ax-info-block ax-hover" role="item">
                 <div class="ax-row">
-                  <div class="ax-col"><span class="ax-ell" role="name"><% Object.values(this[Object.keys(this)[0]])[0] %></span></div>
+                  <div class="ax-col"><span class="ax-ell" role="name"><# this.item.name #></span></div>
                 </div>
               </a>
       `;
@@ -12852,1649 +13016,992 @@ class axRange {
     });
 })();
 /*!
-* 插件：列表筛选、检索、排序和分页；改造自listjs v2.3.1 https://github.com/javve/list.js；使用方法：new axList('#id',{参数})
+ * 插件：分页；使用方法：new axPagination('#id',{参数})
+ * 从现有的list中自动创建分页
+ * 从已知的数组创建列表并分页
+ * 可追加列表item数量并重新渲染分页
+ * 分页节点能自动在列表下方创建，也可以在指定的dom创建
+ */
+class axPagination {
+    constructor(targetDom, options) {
+        this.options = axExtend({
+            listDom: '',
+            count: 10, 
+            current: 1, 
+            firstText: '首页', 
+            prevText: '上一页', 
+            nextText: '下一页', 
+            lastText: '尾页', 
+            allPages: false,
+            data: [], 
+            template: '', 
+            type: 'regular', 
+            loadingMode: 'replace',
+            className: '',
+            lastDel: '', 
+            async: '',
+            delay: 0,
+            dataExtend: '',
+            rendered: function (current, pagesNum) {
+            }
+        }, options, targetDom);
+        this.targetExist = targetDom ? true : false;
+        this.targetDom = targetDom ? axIdToDom(targetDom) : axAddElem('div', { class: this.options.className ? 'ax-pagination ' + this.options.className : 'ax-pagination' });
+        if (this.dataType(this.options.data) == 'pageDom') {
+            this.listDom = axIdToDom(this.options.data);
+        } else if (this.options.listDom) {
+            this.listDom = axIdToDom(this.options.listDom);
+        } else {
+            this.listDom = '';
+        }
+        this.handlers = {};
+        this.preData = [];
+        this.selectData = [];
+        this.itemsNum = 0;
+        this.pagesNum = 0;
+        this.current = this.options.current;
+        this.loadingDom = axAddElem('div', { class: 'ax-pageTurning' })
+        if (!this.options.template) {
+            this.template = '';
+        } else {
+            if (this.options.template.trim().substr(0, 1) == '#') {
+                this.template = document.querySelector(this.options.template).innerHTML
+            } else {
+                this.template = this.options.template;
+            }
+        }
+        this.pagesDom = axAddElem('div', { class: 'ax-core' });
+        this.pageFirst = axAddElem('a', { href: '###', class: 'ax-first' }, this.options.firstText);
+        this.pageLast = axAddElem('a', { href: '###', class: 'ax-last' }, this.options.lastText);
+        this.pagePrev = axAddElem('a', { href: '###', class: 'ax-prev' }, this.options.prevText);
+        this.pageNext = axAddElem('a', { href: '###', class: 'ax-next' }, this.options.nextText);
+        this.pageTotal = axAddElem('span', { class: 'ax-total' });
+        this.pageGo = axAddElem('span', { class: 'ax-gopage' });
+        this.group = axAddElem('div', { class: 'ax-group' });
+        this.init(this.options.data);
+    }
+    init(data) {
+        let _this = this;
+        if (axIsEmpty(data)) {
+            this.listDom ? this.listDom.innerHTML = '' : null;
+            this.targetDom.remove();
+            this.current = 1;
+            this.pagesNum = 1;
+            this.itemsNum = 0;
+            return false;
+        }
+        if (this.dataType(data) == 'json') {
+            if (!_this.template) {
+                console.error('The template is required!');
+                return false;
+            }
+            this.jsonAjax(data, function () {
+                this.listDom ? this.renderList(1) : null;
+                this.renderFinish();
+                _this.options.rendered && _this.options.rendered.call(_this, _this.current, _this.pagesNum)
+                'rendered' in _this.handlers ? _this.emit('rendered', _this.current, _this.pagesNum) : null;
+            });
+        } else if (this.dataType(data) == 'sql') {
+            if (!this.template) {
+                console.error('The template is required!');
+                return false;
+            }
+            this.sqlAjax(this.current, function () {
+                this.listDom ? this.renderList(1) : null;
+                this.renderFinish();
+                _this.options.rendered && _this.options.rendered.call(_this, _this.current, _this.pagesNum)
+                'rendered' in _this.handlers ? _this.emit('rendered', _this.current, _this.pagesNum) : null;
+            });
+        } else {
+            if (this.dataType(data) == 'sortList') {
+                data.forEach(i => {
+                    this.preData.push(i.dom);
+                });
+            } else if (this.dataType(data) == 'pureNode') {
+                this.preData = [...data];
+            } else if (this.dataType(data) == 'tplArray') {
+                if (!this.template) {
+                    console.error('The template is required!');
+                    return false;
+                }
+                data.forEach(i => {
+                    let item = axStrToDom(axTplEngine(this.template, i));
+                    this.preData.push(item);
+                });
+            } else {
+                this.preData = [...this.listDom.childNodes].filter(item => item.nodeType == 1);
+            }
+            this.getCurrent(this.preData);
+            this.listDom ? this.renderList(this.current) : null;
+            this.renderFinish();
+            this.options.rendered && this.options.rendered.call(this, this.current, this.pagesNum)
+            'rendered' in this.handlers ? this.emit('rendered', this.current, this.pagesNum) : null;
+        }
+    }
+    dataType(data) {
+        let type = '';
+        if (axType(data) == 'Array') {
+            if (data[0].hasOwnProperty('dom')) {
+                type = 'sortList';
+            } else if (axType(data[0]).includes('Element')) {
+                type = 'pureNode';
+            } else {
+                type = 'tplArray';
+            }
+        } else if (axType(data) == 'String') {
+            if (this.options.async == 'json') {
+                type = 'json';
+            } else if (this.options.async == 'sql') {
+                type = 'sql';
+            } else {
+                type = 'pageDom';
+            }
+        }
+        return type;
+    }
+    renderFinish() {
+        let _this = this;
+        this.renderPages(this.current);
+        this.getPagination();
+        if(this.listDom && !this.targetExist){
+            if(this.listDom.nodeName == 'TBODY'){
+                this.listDom.parentElement.insertAdjacentElement('afterend', this.targetDom)
+            }else{
+                this.listDom.insertAdjacentElement('afterend', this.targetDom)
+            }
+        }
+        this.pageFirst.onclick = function (e) {
+            if (_this.current <= 1) {
+                axPreventDefault(e);
+            } else {
+                _this.current = 1;
+                _this.currentRender(_this.current);
+            }
+        }
+        this.pageLast.onclick = function (e) {
+            if (_this.current >= _this.pagesNum) {
+                axPreventDefault(e);
+            } else {
+                _this.current = _this.pagesNum;
+                _this.currentRender(_this.current);
+            }
+        }
+        this.pagePrev.onclick = function (e) {
+            if (_this.current <= 1) {
+                axPreventDefault(e);
+            } else {
+                _this.current = _this.current - 1;
+                _this.currentRender(_this.current);
+            }
+        }
+        this.pageNext.onclick = function (e) {
+            if (_this.current >= _this.pagesNum) {
+                axPreventDefault(e);
+            } else {
+                _this.current = _this.current + 1;
+                _this.currentRender(_this.current);
+            }
+        }
+    }
+    currentFix(current, pagesNum = this.pagesNum) {
+        if (!current) {
+            return this.current;
+        }
+        if (current <= 1) {
+            this.current = 1;
+        } else if (current >= pagesNum) {
+            this.current = pagesNum;
+        } else {
+            this.current = current;
+        }
+        return this.current;
+    }
+    getCurrent(data, current, pagesNum, itemsNum) {
+        this.itemsNum = itemsNum ? itemsNum : data.length;
+        if (pagesNum) {
+            this.pagesNum = pagesNum;
+        } else {
+            let divisor = this.itemsNum / this.options.count;
+            this.pagesNum = divisor % 1 === 0 ? divisor : Math.floor(divisor) + 1;
+        }
+        this.currentFix(current ? current : this.current, this.pagesNum);
+    }
+    renderList(current) {
+        let fragment = document.createDocumentFragment();
+        this.selectData = this.preData.slice(this.options.count * (current - 1), this.options.count * current);
+        this.selectData.forEach((item, index) => {
+            if (index + 1 == this.selectData.length && this.options.lastDel && item.querySelector(this.options.lastDel)) {
+                item.removeChild(item.querySelector(this.options.lastDel))
+            }
+            fragment.appendChild(item);
+        });
+        this.listDom.innerHTML = '';
+        this.listDom.appendChild(fragment);
+    }
+    renderPages(current) {
+        let _this = this;
+        current = this.currentFix(current);
+        this.pagesDom.innerHTML = ''
+        if (this.options.allPages) {
+            for (let i = 1; i <= this.pagesNum; i++) {
+                let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                this.pagesDom.appendChild(item);
+            }
+        } else {
+            if (this.pagesNum < 11) {
+                for (let i = 1; i <= this.pagesNum; i++) {
+                    let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                    this.pagesDom.appendChild(item);
+                }
+            } else {
+                if (current < 6) {
+                    for (let i = 1; i <= 8; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                    this.pagesDom.appendChild(axAddElem('span', {}, '...'));
+                    for (let i = this.pagesNum - 1; i <= this.pagesNum; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                } else if (this.pagesNum - current < 5) {
+                    for (let i = 1; i <= 2; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                    this.pagesDom.appendChild(axAddElem('span', {}, '...'));
+                    for (let i = this.pagesNum - 6; i <= this.pagesNum; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                } else {
+                    for (let i = 1; i <= 2; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                    this.pagesDom.appendChild(axAddElem('span', {}, '...'));
+                    for (let i = current - 2; i <= current + 2; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                    this.pagesDom.appendChild(axAddElem('span', {}, '...'));
+                    for (let i = this.pagesNum - 1; i <= this.pagesNum; i++) {
+                        let item = axAddElem('a', { href: '###', 'data-page': i }, i);
+                        this.pagesDom.appendChild(item);
+                    }
+                }
+            }
+        }
+        let pages = this.pagesDom.querySelectorAll('[data-page]');
+        [...pages].forEach(item => {
+            item.onclick = function () {
+                _this.current = ~~item.dataset.page; 
+                _this.currentRender(_this.current);
+            }
+        });
+        this.setClass(current);
+        return this.pagesDom;
+    }
+    setClass(current) {
+        let pages = this.pagesDom.querySelectorAll('[data-page]'),
+            page = [...pages].filter(item => ~~item.dataset.page == current)[0];
+        page.classList.add('ax-active');
+        if (~~page.dataset.page == 1) {
+            this.pageFirst.classList.add('ax-disabled');
+            this.pagePrev.classList.add('ax-disabled');
+            if(this.pagesNum == 1){
+                this.pageLast.classList.add('ax-disabled');
+                this.pageNext.classList.add('ax-disabled');
+            }else{
+                this.pageLast.classList.remove('ax-disabled');
+                this.pageNext.classList.remove('ax-disabled');
+            }
+        } else if (~~page.dataset.page == this.pagesNum) {
+            this.pageLast.classList.add('ax-disabled');
+            this.pageNext.classList.add('ax-disabled');
+            this.pageFirst.classList.remove('ax-disabled');
+            this.pagePrev.classList.remove('ax-disabled');
+        } else {
+            this.pageFirst.classList.remove('ax-disabled');
+            this.pagePrev.classList.remove('ax-disabled');
+            this.pageLast.classList.remove('ax-disabled');
+            this.pageNext.classList.remove('ax-disabled');
+        }
+    }
+    getPagination() {
+        let _this = this;
+        let fragment = document.createDocumentFragment();
+        this.pageTotal.innerHTML = '共有' + this.pagesNum + '页, ' + this.itemsNum + '条数据';
+        this.pageGo.innerHTML = '跳到</span><input type="text"><button type="button" class="ax-btn">确定</button>';
+        let goInput = this.pageGo.querySelector('input'),
+            goBtn = this.pageGo.querySelector('button');
+        goBtn.onclick = function () {
+            let val = ~~goInput.value;
+            if (val <= 1) {
+                console.warn('The value is out of range,it has been fixed!');
+                goInput.value = 1;
+                _this.current = 1;
+            } else if (val >= _this.pagesNum) {
+                console.warn('The value is out of range,it has been fixed!');
+                goInput.value = _this.pagesNum;
+                _this.current = _this.pagesNum;
+            } else {
+                _this.current = val;
+            }
+            _this.currentRender(_this.current);
+        }
+        goInput.onkeyup = function(e){
+            if(e.keyCode == 13){
+                goBtn.click();
+            }
+        }
+        if (this.options.type == 'regular') {
+            fragment.appendChild(this.pageFirst);
+            fragment.appendChild(this.pagePrev);
+            fragment.appendChild(this.pagesDom);
+            fragment.appendChild(this.pageNext);
+            fragment.appendChild(this.pageLast);
+        } else if (this.options.type == 'group') {
+            this.group.appendChild(this.pageFirst);
+            this.group.appendChild(this.pagePrev);
+            this.group.appendChild(this.pagesDom);
+            this.group.appendChild(this.pageNext);
+            this.group.appendChild(this.pageLast);
+            fragment.appendChild(this.group);
+        } else if (this.options.type == 'simple') {
+            fragment.appendChild(this.pagePrev);
+            fragment.appendChild(this.pageNext);
+        } else if (this.options.type == 'full') {
+            fragment.appendChild(this.pageFirst);
+            fragment.appendChild(this.pagePrev);
+            fragment.appendChild(this.pagesDom);
+            fragment.appendChild(this.pageNext);
+            fragment.appendChild(this.pageLast);
+            fragment.appendChild(this.pageTotal);
+            fragment.appendChild(this.pageGo);
+        } else if (this.options.type == 'pagesRight') {
+            let left = axAddElem('div'),
+                right = axAddElem('div', { class: 'ax-col ax-align-right' });
+            this.targetDom.classList.add('ax-row');
+            left.appendChild(this.pageTotal);
+            left.appendChild(this.pageGo);
+            right.appendChild(this.pageFirst);
+            right.appendChild(this.pagePrev);
+            right.appendChild(this.pagesDom);
+            right.appendChild(this.pageNext);
+            right.appendChild(this.pageLast);
+            fragment.appendChild(left);
+            fragment.appendChild(right);
+        } else if (this.options.type == 'pagesLeft') {
+            let right = axAddElem('div'),
+                left = axAddElem('div', { class: 'ax-col ax-align-left' });
+            this.targetDom.classList.add('ax-row');
+            right.appendChild(this.pageTotal);
+            right.appendChild(this.pageGo);
+            left.appendChild(this.pageFirst);
+            left.appendChild(this.pagePrev);
+            left.appendChild(this.pagesDom);
+            left.appendChild(this.pageNext);
+            left.appendChild(this.pageLast);
+            fragment.appendChild(left);
+            fragment.appendChild(right);
+        } else {
+            fragment.appendChild(this.pagesDom);
+        }
+        this.targetDom.appendChild(fragment);
+    }
+    jsonAjax(data, callback) {
+        let _this = this;
+        axAjax({
+            url: data,
+            before: function (loading) {
+                _this.listDom ? _this.listDom.innerHTML = '<div class="ax-pageTurning">' + loading + '</div>' : null;
+            },
+            success: function (content) {
+                content.forEach(i => {
+                    let item = axStrToDom(axTplEngine(_this.template, i));
+                    _this.preData.push(item);
+                });
+                _this.getCurrent(_this.preData);
+                callback && callback.call(_this);
+            }
+        })
+    }
+    sqlAjax(current, callback) {
+        let _this = this;
+        axAjax({
+            data: Object.assign({ count: this.options.count, current: current }, _this.options.dataExtend),
+            url: this.options.data,
+            before: function (loading) {
+                if (_this.listDom) {
+                    _this.loadingDom.style = '';
+                    _this.loadingDom.innerHTML = loading;
+                    if (_this.options.loadingMode == 'overlay') {
+                        _this.loadingDom.classList.add('ax-overlay');
+                    } else {
+                        _this.listDom.innerHTML = '';
+                        _this.listDom.appendChild(_this.loadingDom)
+                    }
+                    _this.listDom.insertAdjacentElement('afterbegin', _this.loadingDom);
+                    axFadeIn(_this.loadingDom, 'flex');
+                }
+            },
+            success: function (content) {
+                if(typeof content != 'object'){
+                    console.error('The type of content must be object!');
+                    return false;
+                }
+                if(axIsEmpty(content.data)){
+                    _this.listDom?_this.listDom.innerHTML ='':null;
+                    _this.targetDom.innerHTML = '';
+                    return false;
+                }
+                _this.preData = [];
+                content.data.forEach(i => {
+                    let item = axStrToDom(axTplEngine(_this.template, i));
+                    _this.preData.push(item);
+                });
+                _this.getCurrent(content.data, ~~content.current, ~~content.pagesNum, ~~content.itemsNum);
+                callback && callback.call(_this);
+            }
+        })
+    }
+    currentRender(current) {
+        let _this = this;
+        if (_this.dataType(this.options.data) == 'sql') {
+            this.sqlAjax(current, function () {
+                if (_this.options.delay) {
+                    setTimeout(function () {
+                        _this.listDom ? _this.renderList(1) : null;
+                    }, _this.options.delay)
+                } else {
+                    _this.listDom ? _this.renderList(1) : null;
+                }
+            });
+        } else {
+            _this.listDom ? _this.renderList(current) : null;
+        }
+        _this.renderPages(current);
+        'turned' in this.handlers ? this.emit('turned', this.current, this.pagesNum) : null;
+    }
+    first(callback) {
+        this.current = 1;
+        this.currentRender(this.current);
+        callback && callback.call(this, this.current, this.pagesNum);
+        return this;
+    }
+    prev(callback) {
+        if (this.current <= 1) {
+            return false;
+        } else {
+            this.current = this.current - 1;
+            this.currentRender(this.current);
+            callback && callback.call(this, this.current, this.pagesNum);
+        }
+        return this;
+    }
+    next(callback) {
+        if (this.current >= this.pagesNum) {
+            return false;
+        } else {
+            this.current = this.current + 1;
+            this.currentRender(this.current);
+            callback && callback.call(this, this.current, this.pagesNum);
+        }
+        return this;
+    }
+    last(callback) {
+        this.current = this.pagesNum;
+        this.currentRender(this.current);
+        callback && callback.call(this, this.current, this.pagesNum);
+        return this;
+    }
+    go(page, callback) {
+        if (this.current <= 1 || this.current >= this.pagesNum) {
+            console.error('The value is out of range!');
+            return false;
+        } else {
+            this.current = ~~page;
+            this.currentRender(this.current);
+            callback && callback.call(this, this.current, this.pagesNum);
+        }
+        return this;
+    }
+    info(callback) {
+        let info = { current: this.current, pagesNum: this.pagesNum, count: this.options.count, itemsNum: this.itemsNum, selectData: this.selectData };
+        callback && callback.call(this, info);
+        return info;
+    }
+    update(setting, mode = 'overwrite', callback) {
+        this.options = axExtend(this.options, setting);
+        this.current = this.options.current;
+        this.targetDom.innerHTML = '';
+        mode == 'overwrite' ? this.preData = [] : null;
+        this.init(this.options.data);
+        'updated' in this.handlers ? this.emit('updated', this.current, this.pagesNum) : null;
+        callback && callback.call(this);
+        return this;
+    }
+    updateData(data, mode = 'overwrite', callback) {
+        this.options.data = data;
+        this.targetDom.innerHTML = '';
+        mode == 'overwrite' ? this.preData = [] : null;
+        this.init(this.options.data);
+        'updated' in this.handlers ? this.emit('updated', this.current, this.pagesNum) : null;
+        callback && callback.call(this);
+        return this;
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
+    document.querySelectorAll('[axPagination]').forEach(element => {
+        new axPagination(element);
+    });
+})();
+/*!
+* 插件：可排序列表；使用方法：new axList('#id',{参数})；#id是可选参数，可以从该dom获取参数值
 */
-const axLists = [];
-(function (factory) {
-    let global = window || global || self;
-    typeof define === 'function' && define.amd ? define(factory) : global.axList = factory();
+class axList {
+    constructor(targetDom, options) {
+        this.targetDom = axIdToDom(targetDom);
+        this.options = axExtend({
+            names: '',
+            keyDelay: 200,
+            paginationDom: null,
+            maxCount: 10000,
+            pagination: true,
+            updated: function (current, pagesNum) {
+            },
+            count: 10, 
+            current: 1, 
+            firstText: '首页', 
+            prevText: '上一页', 
+            nextText: '下一页', 
+            lastText: '尾页', 
+            allPages: false,
+            data: [], 
+            template: null, 
+            type: 'regular', 
+            className: '',
+            lastDel: '', 
+            async: '',
+            loadingMode: 'overlay',
+            delay: 0,
+            dataExtend: '',
+            rendered: function (current, pagesNum) {
+            }
+        }, options, this.targetDom);
+        this.handlers = {};
+        this.rawData = [];
+        this.preData = [];
+        this.paginationDom = this.options.paginationDom ? axIdToDom(this.options.paginationDom) : '';
+        if (!this.options.template) {
+            this.template = '';
+        } else {
+            if (this.options.template.trim().substr(0, 1) == '#') {
+                this.template = document.querySelector(this.options.template).innerHTML
+            } else {
+                this.template = this.options.template;
+            }
+        }
+        this.names = this.options.names.replace(/\s+/g, '').split(',');
+        this.listDom = this.targetDom.querySelector('[list]');
+        this.searchs = this.targetDom.querySelectorAll('[search]');
+        this.keywords = this.targetDom.querySelectorAll('[keyword]');
+        this.searchVal = '';
+        this.sorts = this.targetDom.querySelectorAll('[sort]');
+        this.resets = this.targetDom.querySelectorAll('[reset]');
+        this.filters = this.targetDom.querySelectorAll('[filter]');
+        this.extends = this.targetDom.querySelectorAll('[extend]');
+        this.paginationOpt = {};
+        this.pagination = null;
+        this.init();
+    }
+    init() {
+        let _this = this;
+        this.setPaginationOpt();
+        if (!axIsEmpty(this.listDom.childNodes)) {
+            let data = [...this.listDom.childNodes].filter(item => item.nodeType == 1);
+            this.getDomArr(data);
+            this.paginationOpt.data = this.preData;
+            this.renderFinish();
+        } else if (axType(this.options.data) == 'String' && this.options.template) {
+            if (this.options.async == 'json') {
+                let _this = this;
+                axAjax({
+                    url: _this.options.data,
+                    success: function (content) {
+                        let data = [];
+                        content.forEach(i => {
+                            let item = axStrToDom(axTplEngine(_this.template, i));
+                            data.push(item);
+                        });
+                        _this.getDomArr(data);
+                        _this.paginationOpt.data = _this.preData;
+                        _this.renderFinish();
+                    }
+                })
+            } else if (this.options.async == 'sql') {
+                if (!['relative', 'absolute', 'fixed'].includes(axStyle(this.listDom).position)) {
+                    this.listDom.style.position = 'relative';
+                }
+                this.renderSqlFinish();
+            }
+        } else {
+            this.paginationOpt.data = this.options.data;
+            this.renderFinish();
+        }
+    }
+    getDomArr(listData) {
+        if (this.options.names) {
+            listData.forEach(item => {
+                let obj = { dom: item };
+                this.names.forEach(i => {
+                    item.querySelector('[' + i + ']') ? obj[i] = item.querySelector('[' + i + ']').innerHTML.trim() : null;
+                })
+                this.preData.push(obj);
+            });
+            this.rawData = [...this.preData];
+            return true;
+        } else {
+            this.preData = listData;
+            this.rawData = [...listData];
+            return false;
+        }
+    }
+    renderFinish() {
+        let _this = this;
+        this.pagination = new axPagination(this.paginationDom, this.paginationOpt);
+        if (!this.options.pagination) {
+            this.pagination.targetDom.remove();
+            if (this.pagination.itemsNum > this.paginationOpt.count) {
+                console.error('The maximum length cannot exceed ' + this.paginationOpt.count + '!');
+                return false;
+            }
+        }
+        [...this.sorts].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let attr = item.getAttribute('sort');
+            if (_this.names.some(i => i == attr)) {
+                item.onclick = function () {
+                    if (this.hasAttribute('desc')) {
+                        this.removeAttribute('desc');
+                        this.setAttribute('asc', '')
+                        _this.sort(attr, 'asc');
+                    } else {
+                        this.removeAttribute('asc');
+                        this.setAttribute('desc', '');
+                        _this.sort(attr, 'desc');
+                    }
+                }
+            }
+        });
+        [...this.resets].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            item.onclick = function () {
+                _this.preData = [..._this.rawData];
+                _this.pagination.updateData(_this.preData, 'overwrite', function () {
+                    'reset' in _this.handlers ? _this.emit('reset', _this.pagination.current, _this.pagination.pagesNum) : null;
+                    _this.options.updated && _this.options.updated.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+                })
+            }
+        });
+        [...this.searchs].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let source = [..._this.preData];
+            item.oninput = axDebounce(function () {
+                let value = '';
+                if (this.getAttribute('for')) {
+                    let arr = this.getAttribute('for').split(','),
+                        obj = {};
+                    arr.forEach(i => {
+                        obj[i] = this.value;
+                    });
+                    value = obj;
+                } else {
+                    value = this.value;
+                }
+                _this.keySearch(value, source, item);
+            }, _this.options.keyDelay);
+            /*        item.oninput = function () {
+                       let value = '';
+                       if (this.getAttribute('for')) {
+                           let arr = this.getAttribute('for').split(','),
+                               obj = {};
+                           arr.forEach(i => {
+                               obj[i] = this.value;
+                           })
+                           value = obj;
+                       } else {
+                           value = this.value;
+                       }
+                       if (timeout) {
+                           clearTimeout(timeout)
+                       }
+                       timeout = setTimeout(_this.keySearch(value, source, item), _this.options.keyDelay); 
+                   }*/
+        });
+        [...this.filters].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let source = [..._this.preData],
+                names = JSON.parse(item.getAttribute('filter'));
+            item.onclick = function () {
+                _this.keySearch(names, source, item);
+            }
+        });
+    }
+    setPaginationOpt() {
+        this.paginationOpt.listDom = this.listDom;
+        this.paginationOpt.count = !this.options.pagination ? this.options.maxCount : this.options.count;
+        this.paginationOpt.current = this.options.current;
+        this.paginationOpt.firstText = this.options.firstText;
+        this.paginationOpt.prevText = this.options.prevText;
+        this.paginationOpt.nextText = this.options.nextText;
+        this.paginationOpt.lastText = this.options.lastText;
+        this.paginationOpt.allPages = this.options.allPages;
+        this.paginationOpt.data = this.options.data;
+        this.paginationOpt.template = this.options.template;
+        this.paginationOpt.type = this.options.type;
+        this.paginationOpt.className = this.options.className;
+        this.paginationOpt.lastDel = this.options.lastDel;
+        this.paginationOpt.async = this.options.async;
+        this.paginationOpt.delay = this.options.delay;
+        this.paginationOpt.loadingMode = this.options.loadingMode;
+        this.paginationOpt.dataExtend = this.options.dataExtend;
+        this.paginationOpt.rendered = this.options.rendered;
+        return this.paginationOpt;
+    }
+    renderSqlFinish() {
+        let _this = this;
+        this.pagination = new axPagination(this.paginationDom, this.paginationOpt);
+        [...this.sorts].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let attr = item.getAttribute('sort');
+            item.onclick = function () {
+                let obj = { sort: attr };
+                _this.updateSql({ dataExtend: obj });
+                if (!attr.includes(',')) {
+                    if (attr.includes('desc')) {
+                        attr = attr.replace('desc', 'asc');
+                        item.removeAttribute('desc');
+                        item.setAttribute('asc', '');
+                    } else if (attr.includes('asc')) {
+                        attr = attr.replace('asc', 'desc');
+                        item.removeAttribute('asc');
+                        item.setAttribute('desc', '');
+                    }
+                }
+            }
+        });
+        [...this.filters].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let attr = item.getAttribute('filter'),
+                obj = { filter: attr };
+            item.onclick = function () {
+                _this.updateSql({ dataExtend: obj });
+                _this.pagination.on('rendered', function () {
+                    if (axIsEmpty(_this.pagination.preData)) {
+                        _this.listDom.innerHTML = '';
+                        _this.pagination.targetDom.innerHTML = '';
+                    }
+                });
+            }
+        });
+        [...this.extends].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let attr = item.getAttribute('extend'),
+                obj = { extend: attr };
+            item.onclick = function () {
+                _this.updateSql({ dataExtend: obj });
+                _this.pagination.on('rendered', function () {
+                    if (axIsEmpty(_this.pagination.preData)) {
+                        _this.listDom.innerHTML = '';
+                        _this.pagination.targetDom.innerHTML = '';
+                    }
+                });
+            }
+        });
+        [...this.searchs].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            let searchNames = item.getAttribute('search'),
+                keyInput = [...this.keywords].filter(i => i.getAttribute('keyword') == item.getAttribute('for'))[0];
+            searchNames = searchNames ? searchNames.replace(/\s+/g, '').split(',') : this.names;
+            item.onclick = function () {
+                _this.sqlSearch(searchNames, keyInput.value);
+            }
+            keyInput.onkeyup = function (e) {
+                if (e.keyCode === 13) {
+                    item.click();
+                }
+            }
+        });
+        [...this.resets].forEach(item => {
+            if (!item) {
+                console.error(axError.noNode);
+                return false;
+            }
+            item.onclick = function () {
+                _this.updateSql({ dataExtend: { reset: true } });
+                [..._this.sorts].forEach(i => {
+                    i.removeAttribute('desc', 'asc')
+                });
+                [..._this.keywords].forEach(i => {
+                    i.value = '';
+                });
+            }
+        });
+    }
+    sort(name, order, callback) {
+        let _this = this;
+        if (order == 'asc') {
+            this.preData.sort(function (a, b) {
+                if (isNaN(a[name] - b[name])) {
+                    return b[name].localeCompare(a[name], 'zh-CN-u-kf-lower');
+                } else {
+                    return b[name] - a[name];
+                }
+            })
+        } else if (order == 'desc') {
+            this.preData.sort(function (a, b) {
+                if (isNaN(a[name] - b[name])) {
+                    return a[name].localeCompare(b[name], 'zh-CN-u-kf-lower');
+                } else {
+                    return a[name] - b[name];
+                }
+            })
+        } else {
+            return false;
+        }
+        this.pagination.updateData(this.preData, 'overwrite');
+        'sorted' in this.handlers ? this.emit('sorted', _this.pagination.current, _this.pagination.pagesNum) : null;
+        _this.options.updated && _this.options.updated.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        callback && callback.call(this, this.preData, this.pagination.current);
+        return this;
+    }
+    keySearch(value, sourceArr, item, callback) {
+        let _this = this,
+            filterArr = sourceArr.filter(i => {
+                let values = [];
+                if (typeof value == "object") {
+                    let flag = [];
+                    for (let k in value) {
+                        flag.push(i[k].includes(value[k]));
+                    }
+                    if (item.hasAttribute('or')) {
+                        return flag.some(k => k == true);
+                    } else {
+                        return !flag.some(k => k == false);
+                    }
+                } else {
+                    for (let k of _this.names) {
+                        values.push(i[k]);
+                    }
+                    return values.toString().includes(value);
+                }
+            });
+        _this.preData = filterArr;
+        if (axIsEmpty(_this.preData)) {
+            'filtered' in _this.handlers ? _this.emit('filtered', _this.pagination.current, _this.pagination.pagesNum) : null;
+            callback && callback.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+            _this.preData = [...this.rawData];
+            _this.listDom.innerHTML = '';
+            _this.pagination.targetDom.innerHTML = '';
+            return false;
+        } else {
+            _this.pagination.updateData(_this.preData, 'overwrite');
+            'filtered' in _this.handlers ? _this.emit('filtered', _this.pagination.current, _this.pagination.pagesNum) : null;
+            _this.options.updated && _this.options.updated.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+            callback && callback.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        }
+    }
+    sqlSearch(names, value) {
+        let _this = this,
+            dataString = '',
+            last;
+        names.forEach((i, index) => {
+            last = names.length - 1 != index ? 'or ' : '';
+            dataString += i + " like '%" + value + "%' " + last;
+        });
+        _this.options.dataExtend = '';
+        _this.update({ dataExtend: { search: dataString } });
+        _this.pagination.on('rendered', function () {
+            if (axIsEmpty(_this.pagination.preData)) {
+                _this.listDom.innerHTML = '';
+                _this.pagination.targetDom.innerHTML = '';
+            }
+        })
+    }
+    updateSql(extend, callback) {
+        let _this = this;
+        _this.pagination.options.dataExtend = '';
+        _this.pagination.update(extend, 'overwrite', function () {
+            'updated' in _this.handlers ? _this.emit('updated', _this.pagination.current, _this.pagination.pagesNum) : null;
+            _this.options.updated && _this.options.updated.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        });
+        callback && callback.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        return this;
+    }
+    update(setting, callback) {
+        let _this = this;
+        _this.options = axExtend(_this.options, setting);
+        _this.pagination.update(setting, 'overwrite', function () {
+            'updated' in _this.handlers ? _this.emit('updated', _this.pagination.current, _this.pagination.pagesNum) : null;
+            _this.options.updated && _this.options.updated.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        });
+        callback && callback.call(_this, _this.pagination.current, _this.pagination.pagesNum);
+        return this;
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
     document.querySelectorAll('[axList]').forEach(element => {
         new axList(element);
     });
-})((function () {
-    'use strict';
-    var alphabet;
-    var alphabetIndexMap;
-    var alphabetIndexMapLength = 0;
-    function isNumberCode(code) {
-        return code >= 48 && code <= 57;
-    }
-    function naturalCompare(a, b) {
-        var lengthA = (a += '').length;
-        var lengthB = (b += '').length;
-        var aIndex = 0;
-        var bIndex = 0;
-        while (aIndex < lengthA && bIndex < lengthB) {
-            var charCodeA = a.charCodeAt(aIndex);
-            var charCodeB = b.charCodeAt(bIndex);
-            if (isNumberCode(charCodeA)) {
-                if (!isNumberCode(charCodeB)) {
-                    return charCodeA - charCodeB;
-                }
-                var numStartA = aIndex;
-                var numStartB = bIndex;
-                while (charCodeA === 48 && ++numStartA < lengthA) {
-                    charCodeA = a.charCodeAt(numStartA);
-                }
-                while (charCodeB === 48 && ++numStartB < lengthB) {
-                    charCodeB = b.charCodeAt(numStartB);
-                }
-                var numEndA = numStartA;
-                var numEndB = numStartB;
-                while (numEndA < lengthA && isNumberCode(a.charCodeAt(numEndA))) {
-                    ++numEndA;
-                }
-                while (numEndB < lengthB && isNumberCode(b.charCodeAt(numEndB))) {
-                    ++numEndB;
-                }
-                var difference = numEndA - numStartA - numEndB + numStartB; 
-                if (difference) {
-                    return difference;
-                }
-                while (numStartA < numEndA) {
-                    difference = a.charCodeAt(numStartA++) - b.charCodeAt(numStartB++);
-                    if (difference) {
-                        return difference;
-                    }
-                }
-                aIndex = numEndA;
-                bIndex = numEndB;
-                continue;
-            }
-            if (charCodeA !== charCodeB) {
-                if (
-                    charCodeA < alphabetIndexMapLength &&
-                    charCodeB < alphabetIndexMapLength &&
-                    alphabetIndexMap[charCodeA] !== -1 &&
-                    alphabetIndexMap[charCodeB] !== -1
-                ) {
-                    return alphabetIndexMap[charCodeA] - alphabetIndexMap[charCodeB];
-                }
-                return charCodeA - charCodeB;
-            }
-            ++aIndex;
-            ++bIndex;
-        }
-        if (aIndex >= lengthA && bIndex < lengthB && lengthA >= lengthB) {
-            return -1;
-        }
-        if (bIndex >= lengthB && aIndex < lengthA && lengthB >= lengthA) {
-            return 1;
-        }
-        return lengthA - lengthB;
-    }
-    naturalCompare.caseInsensitive = naturalCompare.i = function (a, b) {
-        return naturalCompare(('' + a).toLowerCase(), ('' + b).toLowerCase());
-    };
-    Object.defineProperties(naturalCompare, {
-        alphabet: {
-            get: function () {
-                return alphabet;
-            },
-            set: function (value) {
-                alphabet = value;
-                alphabetIndexMap = [];
-                var i = 0;
-                if (alphabet) {
-                    for (; i < alphabet.length; i++) {
-                        alphabetIndexMap[alphabet.charCodeAt(i)] = i;
-                    }
-                }
-                alphabetIndexMapLength = alphabetIndexMap.length;
-                for (i = 0; i < alphabetIndexMapLength; i++) {
-                    if (alphabetIndexMap[i] === undefined) {
-                        alphabetIndexMap[i] = -1;
-                    }
-                }
-            },
-        },
-    });
-    var naturalCompare_1 = naturalCompare;
-    /**
-     * A cross-browser implementation of getElementsByClass.
-     * Heavily based on Dustin Diaz's function: http://dustindiaz.com/getelementsbyclass.
-     *
-     * Find all elements with class `className` inside `container`.
-     * Use `single = true` to increase performance in older browsers
-     * when only one element is needed.
-     *
-     * @param {String} className
-     * @param {Element} container
-     * @param {Boolean} single
-     * @api public
-     */
-    var getElementsByClassName = function (container, className, single) {
-        if (single) {
-            return container.querySelector(className)
-        } else {
-            return container.querySelectorAll(className)
-        }
-    };
-    var querySelector = function (container, className, single) {
-        if (single) {
-            return container.querySelector(className)
-        } else {
-            return container.querySelectorAll(className)
-        }
-    };
-    var polyfill = function (container, className, single) {
-        var classElements = [],
-            tag = '*';
-        var els = container.getElementsByTagName(tag);
-        var elsLen = els.length;
-        var pattern = new RegExp('(^|\\s)' + className + '(\\s|$)');
-        for (var i = 0, j = 0; i < elsLen; i++) {
-            if (pattern.test(els[i].className)) {
-                if (single) {
-                    return els[i]
-                } else {
-                    classElements[j] = els[i];
-                    j++;
-                }
-            }
-        }
-        return classElements
-    };
-    var getByClass = (function () {
-        return function (container, className, single, options) {
-            options = options || {};
-            if ((options.test && options.querySelector) || (!options.test && document.querySelector)) {
-                return querySelector(container, className, single)
-            } else if ((options.test && options.getElementsByClassName) || (!options.test && document.getElementsByClassName)) {
-                return getElementsByClassName(container, className, single)
-            } else {
-                return polyfill(container, className, single)
-            }
-        }
-    })();
-    /*
-     * Source: https://github.com/segmentio/extend
-     */
-    var extend = function extend(object) {
-        var args = Array.prototype.slice.call(arguments, 1);
-        for (var i = 0, source; (source = args[i]); i++) {
-            if (!source) continue
-            for (var property in source) {
-                object[property] = source[property];
-            }
-        }
-        return object
-    };
-    var indexOf = [].indexOf;
-    var indexOf_1 = function (arr, obj) {
-        if (indexOf) return arr.indexOf(obj);
-        for (var i = 0, il = arr.length; i < il; ++i) {
-            if (arr[i] === obj) return i;
-        }
-        return -1
-    };
-    var events = {};
-    /**
-     * Source: https://github.com/timoxley/to-array
-     *
-     * Convert an array-like object into an `Array`.
-     * If `collection` is already an `Array`, then will return a clone of `collection`.
-     *
-     * @param {Array | Mixed} collection An `Array` or array-like object to convert e.g. `arguments` or `NodeList`
-     * @return {Array} Naive conversion of `collection` to a new `Array`.
-     * @api public
-     */
-    var toArray = function toArray(collection) {
-        if (typeof collection === 'undefined') return []
-        if (collection === null) return [null]
-        if (collection === window) return [window]
-        if (typeof collection === 'string') return [collection]
-        if (isArray(collection)) return collection
-        if (typeof collection.length != 'number') return [collection]
-        if (typeof collection === 'function' && collection instanceof Function) return [collection]
-        var arr = [];
-        for (var i = 0, il = collection.length; i < il; i++) {
-            if (Object.prototype.hasOwnProperty.call(collection, i) || i in collection) {
-                arr.push(collection[i]);
-            }
-        }
-        if (!arr.length) return []
-        return arr
-    };
-    function isArray(arr) {
-        return Object.prototype.toString.call(arr) === '[object Array]'
-    }
-    var bind = window.addEventListener ? 'addEventListener' : 'attachEvent',
-        unbind = window.removeEventListener ? 'removeEventListener' : 'detachEvent',
-        prefix = bind !== 'addEventListener' ? 'on' : '';
-    /**
-     * Bind `el` event `type` to `fn`.
-     *
-     * @param {Element} el, NodeList, HTMLCollection or Array
-     * @param {String} type
-     * @param {Function} fn
-     * @param {Boolean} capture
-     * @api public
-     */
-    events.bind = function (el, type, fn, capture) {
-        el = toArray(el);
-        for (var i = 0, il = el.length; i < il; i++) {
-            el[i][bind](prefix + type, fn, capture || false);
-        }
-    };
-    /**
-     * Unbind `el` event `type`'s callback `fn`.
-     *
-     * @param {Element} el, NodeList, HTMLCollection or Array
-     * @param {String} type
-     * @param {Function} fn
-     * @param {Boolean} capture
-     * @api public
-     */
-    events.unbind = function (el, type, fn, capture) {
-        el = toArray(el);
-        for (var i = 0, il = el.length; i < il; i++) {
-            el[i][unbind](prefix + type, fn, capture || false);
-        }
-    };
-    /**
-     * Returns a function, that, as long as it continues to be invoked, will not
-     * be triggered. The function will be called after it stops being called for
-     * `wait` milliseconds. If `immediate` is true, trigger the function on the
-     * leading edge, instead of the trailing.
-     *
-     * @param {Function} fn
-     * @param {Integer} wait
-     * @param {Boolean} immediate
-     * @api public
-     */
-    events.debounce = function (fn, wait, immediate) {
-        var timeout;
-        return wait
-            ? function () {
-                var context = this,
-                    args = arguments;
-                var later = function () {
-                    timeout = null;
-                    if (!immediate) fn.apply(context, args);
-                };
-                var callNow = immediate && !timeout;
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-                if (callNow) fn.apply(context, args);
-            }
-            : fn
-    };
-    var toString = function (s) {
-        s = s === undefined ? '' : s;
-        s = s === null ? '' : s;
-        s = s.toString();
-        return s
-    };
-    /**
-     * Module dependencies.
-     */
-    var index = indexOf_1;
-    /**
-     * Whitespace regexp.
-     */
-    var re = /\s+/;
-    /**
-     * Wrap `el` in a `ClassList`.
-     *
-     * @param {Element} el
-     * @return {ClassList}
-     * @api public
-     */
-    var classes = function (el) {
-        return new ClassList(el)
-    };
-    /**
-     * Initialize a new ClassList for `el`.
-     *
-     * @param {Element} el
-     * @api private
-     */
-    function ClassList(el) {
-        if (!el || !el.nodeType) {
-            throw new Error('A DOM element reference is required')
-        }
-        this.el = el;
-        this.list = el.classList;
-    }
-    /**
-     * Add class `name` if not already present.
-     *
-     * @param {String} name
-     * @return {ClassList}
-     * @api public
-     */
-    ClassList.prototype.add = function (name) {
-        if (this.list) {
-            this.list.add(name);
-            return this
-        }
-        var arr = this.array();
-        var i = index(arr, name);
-        if (!~i) arr.push(name);
-        this.el.className = arr.join(' ');
-        return this
-    };
-    /**
-     * Remove class `name` when present, or
-     * pass a regular expression to remove
-     * any which match.
-     *
-     * @param {String|RegExp} name
-     * @return {ClassList}
-     * @api public
-     */
-    ClassList.prototype.remove = function (name) {
-        if (this.list) {
-            this.list.remove(name);
-            return this
-        }
-        var arr = this.array();
-        var i = index(arr, name);
-        if (~i) arr.splice(i, 1);
-        this.el.className = arr.join(' ');
-        return this
-    };
-    /**
-     * Toggle class `name`, can force state via `force`.
-     *
-     * For browsers that support classList, but do not support `force` yet,
-     * the mistake will be detected and corrected.
-     *
-     * @param {String} name
-     * @param {Boolean} force
-     * @return {ClassList}
-     * @api public
-     */
-    ClassList.prototype.toggle = function (name, force) {
-        if (this.list) {
-            if ('undefined' !== typeof force) {
-                if (force !== this.list.toggle(name, force)) {
-                    this.list.toggle(name); 
-                }
-            } else {
-                this.list.toggle(name);
-            }
-            return this
-        }
-        if ('undefined' !== typeof force) {
-            if (!force) {
-                this.remove(name);
-            } else {
-                this.add(name);
-            }
-        } else {
-            if (this.has(name)) {
-                this.remove(name);
-            } else {
-                this.add(name);
-            }
-        }
-        return this
-    };
-    /**
-     * Return an array of classes.
-     *
-     * @return {Array}
-     * @api public
-     */
-    ClassList.prototype.array = function () {
-        var className = this.el.getAttribute('class') || '';
-        var str = className.replace(/^\s+|\s+$/g, '');
-        var arr = str.split(re);
-        if ('' === arr[0]) arr.shift();
-        return arr
-    };
-    /**
-     * Check if class `name` is present.
-     *
-     * @param {String} name
-     * @return {ClassList}
-     * @api public
-     */
-    ClassList.prototype.has = ClassList.prototype.contains = function (name) {
-        return this.list ? this.list.contains(name) : !!~index(this.array(), name)
-    };
-    /**
-     * A cross-browser implementation of getAttribute.
-     * Source found here: http://stackoverflow.com/a/3755343/361337 written by Vivin Paliath
-     *
-     * Return the value for `attr` at `element`.
-     *
-     * @param {Element} el
-     * @param {String} attr
-     * @api public
-     */
-    var getAttribute = function (el, attr) {
-        var result = (el.getAttribute && el.getAttribute(attr)) || null;
-        if (!result) {
-            var attrs = el.attributes;
-            var length = attrs.length;
-            for (var i = 0; i < length; i++) {
-                if (attrs[i] !== undefined) {
-                    if (attrs[i].nodeName === attr) {
-                        result = attrs[i].nodeValue;
-                    }
-                }
-            }
-        }
-        return result
-    };
-    var item = function (list) {
-        return function (initValues, element, notCreate) {
-            var item = this;
-            this._values = {};
-            this.found = false; 
-            this.filtered = false; 
-            var init = function (initValues, element, notCreate) {
-                if (element === undefined) {
-                    if (notCreate) {
-                        item.values(initValues, notCreate);
-                    } else {
-                        item.values(initValues);
-                    }
-                } else {
-                    item.elm = element;
-                    var values = list.templater.get(item, initValues);
-                    item.values(values);
-                }
-            };
-            this.values = function (newValues, notCreate) {
-                if (newValues !== undefined) {
-                    for (var name in newValues) {
-                        item._values[name] = newValues[name];
-                    }
-                    if (notCreate !== true) {
-                        list.templater.set(item, item.values());
-                    }
-                } else {
-                    return item._values
-                }
-            };
-            this.show = function () {
-                list.templater.show(item);
-            };
-            this.hide = function () {
-                list.templater.hide(item);
-            };
-            this.matching = function () {
-                return (
-                    (list.filtered && list.searched && item.found && item.filtered) ||
-                    (list.filtered && !list.searched && item.filtered) ||
-                    (!list.filtered && list.searched && item.found) ||
-                    (!list.filtered && !list.searched)
-                )
-            };
-            this.visible = function () {
-                return item.elm && item.elm.parentNode == list.list ? true : false
-            };
-            init(initValues, element, notCreate);
-        }
-    };
-    var AddAsync = function (list) {
-        var _addAsync = function (values, callback, items) {
-            var valuesToAdd = values.splice(0, 50);
-            items = items || [];
-            items = items.concat(list.add(valuesToAdd));
-            if (values.length > 0) {
-                setTimeout(function () {
-                    _addAsync(values, callback, items);
-                }, 1);
-            } else {
-                list.update();
-                callback(items);
-            }
-        };
-        return _addAsync
-    };
-    /*  var classes$1 = classes$2,
-         events$2 = events$3,
-         List = src;
-  */
-    var pagination = function (list) {
-        var isHidden = false;
-        var refresh = function (pagingList, options) {
-            var btnFirst = axAddElem('a', { class: 'ax-first', href: '###' }),
-                btnLast = axAddElem('a', { class: 'ax-last', href: '###' }),
-                btnPrev = axAddElem('a', { class: 'ax-prev', href: '###' }),
-                btnNext = axAddElem('a', { class: 'ax-next', href: '###' }),
-                btnTotal = axAddElem('span', { class: 'ax-total' });
-            options.btnFirst = btnFirst;
-            options.btnLast = btnLast;
-            options.btnPrev = btnPrev;
-            options.btnNext = btnNext;
-            options.btnTotal = btnTotal;
-            var disabled = function (direction) {
-                if (direction == 'left') {
-                    btnFirst.classList.add('ax-disabled');
-                    btnPrev.classList.add('ax-disabled');
-                    btnLast.classList.remove('ax-disabled');
-                    btnNext.classList.remove('ax-disabled');
-                } else if (direction == 'right') {
-                    btnLast.classList.add('ax-disabled');
-                    btnNext.classList.add('ax-disabled');
-                    btnFirst.classList.remove('ax-disabled');
-                    btnPrev.classList.remove('ax-disabled');
-                } else {
-                    btnLast.classList.remove('ax-disabled');
-                    btnNext.classList.remove('ax-disabled');
-                    btnFirst.classList.remove('ax-disabled');
-                    btnPrev.classList.remove('ax-disabled');
-                }
-            }
-            if (list.page < 1) {
-                list.listContainer.style.display = 'none';
-                isHidden = true;
-                return
-            } else if (isHidden) {
-                list.listContainer.style.display = 'block';
-            }
-            var item,
-                l = list.matchingItems.length,
-                index = list.i,
-                page = list.page,
-                pages = Math.ceil(l / page),
-                currentPage = Math.ceil(index / page),
-                innerWindow = options.innerWindow || 2,
-                left = options.left || options.outerWindow || 0,
-                right = options.right || options.outerWindow || 0;
-            right = pages - right;
-            pagingList.clear();
-            if (currentPage == 1) {
-                disabled('left')
-            } else if (currentPage == pages) {
-                disabled('right')
-            } else {
-                disabled()
-            }
-            if (options.type == 'simple') {
-                options.totalShow = false;
-                options.firstShow = false;
-                options.lastShow = false;
-                options.pagesShow = false;
-                options.prevShow = true;
-                options.nextShow = true;
-            } else if (options.type == 'full') {
-                options.totalShow = true;
-                options.firstShow = true;
-                options.lastShow = true;
-                options.pagesShow = true;
-                options.prevShow = true;
-                options.nextShow = true;
-            }
-            else if (options.type == 'pure') {
-                options.totalShow = false;
-                options.firstShow = false;
-                options.lastShow = false;
-                options.pagesShow = true;
-                options.prevShow = false;
-                options.nextShow = false;
-            }
-            if (options.pagesShow) {
-                for (var i = 1; i <= pages; i++) {
-                    var className = currentPage === i ? 'ax-active' : '';
-                    if (is.number(i, left, right, currentPage, innerWindow)) {
-                        item = pagingList.add({
-                            dotted: false,
-                        })[0];
-                        item.elm.innerHTML = i;
-                        if (className) {
-                            classes(item.elm).add(className);
-                        }
-                        item.elm.setAttribute('data-i', i);
-                        item.elm.setAttribute('data-page', page);
-                    } else if (is.dotted(pagingList, i, left, right, currentPage, innerWindow, pagingList.size())) {
-                        item = pagingList.add({
-                            dotted: true,
-                        })[0];
-                        item.elm = axAddElem('span', '', '...');
-                    }
-                }
-            }
-            btnFirst.innerHTML = options.textFirst;
-            btnLast.innerHTML = options.textLast;
-            btnPrev.innerHTML = options.textPrev;
-            btnNext.innerHTML = options.textNext;
-            btnTotal.innerHTML = '第' + currentPage + '/' + pages + '页';
-            var isGroup = pagingList.list.classList.contains('ax-group');
-            if (isGroup) {
-                axSiblings(pagingList.list).forEach(item => {
-                    item.remove();
-                })
-                options.totalShow ? pagingList.list.insertAdjacentElement("beforeBegin", btnTotal) : null;
-                options.firstShow ? pagingList.list.insertAdjacentElement("beforeBegin", btnFirst) : null;
-                options.prevShow ? pagingList.list.insertAdjacentElement("beforeBegin", btnPrev) : null;
-                options.lastShow ? pagingList.list.insertAdjacentElement("afterEnd", btnLast) : null;
-                options.nextShow ? pagingList.list.insertAdjacentElement("afterEnd", btnNext) : null;
-            } else {
-                options.prevShow ? pagingList.list.insertAdjacentElement("afterBegin", btnPrev) : null;
-                options.firstShow ? pagingList.list.insertAdjacentElement("afterBegin", btnFirst) : null;
-                options.totalShow ? pagingList.list.insertAdjacentElement("afterBegin", btnTotal) : null;
-                options.nextShow ? pagingList.list.insertAdjacentElement("beforeEnd", btnNext) : null;
-                options.lastShow ? pagingList.list.insertAdjacentElement("beforeEnd", btnLast) : null;
-            }
-        };
-        var is = {
-            number: function (i, left, right, currentPage, innerWindow) {
-                return this.left(i, left, innerWindow, currentPage) || this.right(i, right, innerWindow, currentPage) || this.innerWindow(i, currentPage, innerWindow)
-            },
-            left: function (i, left, innerWindow, currentPage) {
-                if (currentPage <= left + innerWindow + 2 && i <= left + innerWindow * 2 + 2) {
-                    return true;
-                } else {
-                    return i <= left
-                }
-            },
-            right: function (i, right, innerWindow, currentPage) {
-                if (currentPage >= right - innerWindow - 1 && i > right - innerWindow * 2 - 2) {
-                    return true;
-                } else {
-                    return i > right
-                }
-            },
-            innerWindow: function (i, currentPage, innerWindow) {
-                return i >= currentPage - innerWindow && i <= currentPage + innerWindow
-            },
-            dotted: function (pagingList, i, left, right, currentPage, innerWindow, currentPageItem) {
-                return (
-                    this.dottedLeft(pagingList, i, left, right, currentPage, innerWindow) ||
-                    this.dottedRight(pagingList, i, left, right, currentPage, innerWindow, currentPageItem)
-                )
-            },
-            dottedLeft: function (pagingList, i, left, right, currentPage, innerWindow) {
-                return i == left + 1 && !this.innerWindow(i, currentPage, innerWindow) && !this.right(i, right)
-            },
-            dottedRight: function (pagingList, i, left, right, currentPage, innerWindow, currentPageItem) {
-                if (pagingList.items[currentPageItem - 1].values().dotted) {
-                    return false
-                } else {
-                    return i == right && !this.innerWindow(i, currentPage, innerWindow) && !this.right(i, right)
-                }
-            },
-        };
-        return function (options) {
-            var pagingList = new axList(list.listContainer, {
-                listClass: options.paginationClass || '.ax-pagination',
-                item: options.item || "<a href='###'></a>",
-                valueNames: ['page', 'dotted'],
-                searchClass: '.pagination-search-that-is-not-supposed-to-exist',
-                sortClass: '.pagination-sort-that-is-not-supposed-to-exist',
-            });
-            events.bind(pagingList.listContainer, 'click', function (e) {
-                var target = e.target || e.srcElement,
-                    page = list.utils.getAttribute(target, 'data-page'),
-                    i = list.utils.getAttribute(target, 'data-i');
-                if (i) {
-                    list.show((i - 1) * page + 1, page);
-                }
-                var l = list.matchingItems.length,
-                    floor = Math.floor(l / list.page), 
-                    rest = l % list.page, 
-                    currentPage = Math.ceil(list.i / list.page),
-                    prevStart = (currentPage - 2) * list.page + 1,
-                    nextStart = currentPage * list.page + 1,
-                    lastStart = '',
-                    pages = Math.ceil(l / list.page);
-                list.options.pagination.forEach(item => {
-                    if (item.btnFirst) {
-                        if (target == item.btnFirst) {
-                            list.show(1, list.page);
-                        }
-                    }
-                    if (item.btnLast) {
-                        if (target == item.btnLast) {
-                            if (rest == 0) {
-                                lastStart = list.matchingItems.length - list.page + 1;
-                            } else {
-                                lastStart = floor * list.page + 1;
-                            }
-                            list.show(lastStart, list.page);
-                        }
-                    }
-                    if (item.btnPrev) {
-                        if (target == item.btnPrev) {
-                            if (currentPage != 1) {
-                                list.show(prevStart, list.page);
-                            }
-                        }
-                    }
-                    if (item.btnNext) {
-                        if (target == item.btnNext) {
-                            if (currentPage != pages) {
-                                list.show(nextStart, list.page);
-                            }
-                        }
-                    }
-                })
-            });
-            list.on('updated', function () {
-                refresh(pagingList, options);
-            });
-            refresh(pagingList, options);
-        }
-    };
-    var parse = function (list) {
-        var Item = item(list);
-        var getChildren = function (parent) {
-            var nodes = parent.childNodes,
-                items = [];
-            for (var i = 0, il = nodes.length; i < il; i++) {
-                if (nodes[i].data === undefined) {
-                    items.push(nodes[i]);
-                }
-            }
-            return items
-        };
-        var parse = function (itemElements, valueNames) {
-            for (var i = 0, il = itemElements.length; i < il; i++) {
-                list.items.push(new Item(valueNames, itemElements[i]));
-            }
-        };
-        var parseAsync = function (itemElements, valueNames) {
-            var itemsToIndex = itemElements.splice(0, 50); 
-            parse(itemsToIndex, valueNames);
-            if (itemElements.length > 0) {
-                setTimeout(function () {
-                    parseAsync(itemElements, valueNames);
-                }, 1);
-            } else {
-                list.update();
-                list.trigger('parseComplete');
-            }
-        };
-        list.handlers.parseComplete = list.handlers.parseComplete || [];
-        return function () {
-            var itemsToIndex = getChildren(list.list),
-                valueNames = list.valueNames;
-            if (list.indexAsync) {
-                parseAsync(itemsToIndex, valueNames);
-            } else {
-                parse(itemsToIndex, valueNames);
-            }
-        }
-    };
-    var Templater = function (list) {
-        var createItem,
-            templater = this;
-        var init = function () {
-            var itemSource;
-            if (typeof list.item === 'function') {
-                createItem = function (values) {
-                    var item = list.item(values);
-                    return getItemSource(item)
-                };
-                return
-            }
-            if (list.item && typeof list.item === 'string') {
-                if (list.item.indexOf('<') === -1) {
-                    itemSource = document.querySelector(list.item);
-                } else {
-                    itemSource = getItemSource(list.item);
-                }
-            } else {
-                /* 选择子元素 */
-                itemSource = getFirstListItem();
-            }
-            if (!itemSource) {
-                throw new Error("The list needs to have at least one item on init otherwise you'll have to add a template.")
-            }
-            itemSource = createCleanTemplateItem(itemSource, list.valueNames);
-            createItem = function () {
-                return itemSource.cloneNode(true)
-            };
-        };
-        var createCleanTemplateItem = function (templateNode, valueNames) {
-            var el = templateNode.cloneNode(true);
-            el.removeAttribute('id');
-            for (var i = 0, il = valueNames.length; i < il; i++) {
-                var elm = undefined,
-                    valueName = valueNames[i];
-                if (valueName.data) {
-                    for (var j = 0, jl = valueName.data.length; j < jl; j++) {
-                        el.setAttribute('data-' + valueName.data[j], '');
-                    }
-                } else if (valueName.attr && valueName.name) {
-                    elm = list.utils.getByClass(el, '.' + valueName.name, true);
-                    if (elm) {
-                        elm.setAttribute(valueName.attr, '');
-                    }
-                } else {
-                    elm = list.utils.getByClass(el, '.' + valueName, true);
-                    if (elm) {
-                        elm.innerHTML = '';
-                    }
-                }
-            }
-            return el
-        };
-        var getFirstListItem = function () {
-            var nodes = list.list.childNodes;
-            for (var i = 0, il = nodes.length; i < il; i++) {
-                if (nodes[i].data === undefined) {
-                    return nodes[i].cloneNode(true)
-                }
-            }
-            return undefined
-        };
-        var getItemSource = function (itemHTML) {
-            if (typeof itemHTML !== 'string') return undefined
-            if (/<tr[\s>]/g.exec(itemHTML)) {
-                var tbody = document.createElement('tbody');
-                tbody.innerHTML = itemHTML;
-                return tbody.firstElementChild
-            } else if (itemHTML.indexOf('<') !== -1) {
-                var div = document.createElement('div');
-                div.innerHTML = itemHTML;
-                return div.firstElementChild
-            }
-            return undefined
-        };
-        var getValueName = function (name) {
-            for (var i = 0, il = list.valueNames.length; i < il; i++) {
-                var valueName = list.valueNames[i];
-                if (valueName.data) {
-                    var data = valueName.data;
-                    for (var j = 0, jl = data.length; j < jl; j++) {
-                        if (data[j] === name) {
-                            return { data: name }
-                        }
-                    }
-                } else if (valueName.attr && valueName.name && valueName.name == name) {
-                    return valueName
-                } else if (valueName === name) {
-                    return name
-                }
-            }
-        };
-        var setValue = function (item, name, value) {
-            var elm = undefined,
-                valueName = getValueName(name);
-            if (!valueName) return
-            if (valueName.data) {
-                item.elm.setAttribute('data-' + valueName.data, value);
-            } else if (valueName.attr && valueName.name) {
-                elm = list.utils.getByClass(item.elm, '.' + valueName.name, true);
-                if (elm) {
-                    elm.setAttribute(valueName.attr, value);
-                }
-            } else {
-                elm = list.utils.getByClass(item.elm, '.' + valueName, true);
-                if (elm) {
-                    elm.innerHTML = value;
-                }
-            }
-        };
-        this.get = function (item, valueNames) {
-            templater.create(item);
-            var values = {};
-            for (var i = 0, il = valueNames.length; i < il; i++) {
-                var elm = undefined,
-                    valueName = valueNames[i];
-                if (valueName.data) {
-                    for (var j = 0, jl = valueName.data.length; j < jl; j++) {
-                        values[valueName.data[j]] = list.utils.getAttribute(item.elm, 'data-' + valueName.data[j]);
-                    }
-                } else if (valueName.attr && valueName.name) {
-                    elm = list.utils.getByClass(item.elm, '.' + valueName.name, true);
-                    values[valueName.name] = elm ? list.utils.getAttribute(elm, valueName.attr) : '';
-                } else {
-                    elm = list.utils.getByClass(item.elm, '.' + valueName, true);
-                    values[valueName] = elm ? elm.innerHTML : '';
-                }
-            }
-            return values
-        };
-        this.set = function (item, values) {
-            if (!templater.create(item)) {
-                for (var v in values) {
-                    if (values.hasOwnProperty(v)) {
-                        setValue(item, v, values[v]);
-                    }
-                }
-            }
-        };
-        this.create = function (item) {
-            if (item.elm !== undefined) {
-                return false
-            }
-            item.elm = createItem(item.values());
-            templater.set(item, item.values());
-            return true
-        };
-        this.remove = function (item) {
-            if (item.elm.parentNode === list.list) {
-                list.list.removeChild(item.elm);
-            }
-        };
-        this.show = function (item) {
-            templater.create(item);
-            list.list.appendChild(item.elm);
-        };
-        this.hide = function (item) {
-            if (item.elm !== undefined && item.elm.parentNode === list.list) {
-                list.list.removeChild(item.elm);
-            }
-        };
-        this.clear = function () {
-            /* .innerHTML = ''; fucks up IE */
-            if (list.list.hasChildNodes()) {
-                while (list.list.childNodes.length >= 1) {
-                    list.list.removeChild(list.list.firstChild);
-                }
-            }
-        };
-        init();
-    };
-    var templater = function (list) {
-        return new Templater(list)
-    };
-    var search = function (list) {
-        var columns, searchString, customSearch;
-        var prepare = {
-            resetList: function () {
-                list.i = 1;
-                list.templater.clear();
-                customSearch = undefined;
-            },
-            setOptions: function (args) {
-                if (args.length == 2 && args[1] instanceof Array) {
-                    columns = args[1];
-                } else if (args.length == 2 && typeof args[1] == 'function') {
-                    columns = undefined;
-                    customSearch = args[1];
-                } else if (args.length == 3) {
-                    columns = args[1];
-                    customSearch = args[2];
-                } else {
-                    columns = undefined;
-                }
-            },
-            setColumns: function () {
-                if (list.items.length === 0) return
-                if (columns === undefined) {
-                    columns = list.searchColumns === undefined ? prepare.toArray(list.items[0].values()) : list.searchColumns;
-                }
-            },
-            setSearchString: function (s) {
-                s = list.utils.toString(s).toLowerCase();
-                s = s.replace(/[-[\]{}()*+?.,\\^$|#]/g, '\\$&'); 
-                searchString = s;
-            },
-            toArray: function (values) {
-                var tmpColumn = [];
-                for (var name in values) {
-                    tmpColumn.push(name);
-                }
-                return tmpColumn
-            },
-        };
-        var search = {
-            list: function () {
-                var words = [],
-                    phrase,
-                    ss = searchString;
-                while ((phrase = ss.match(/"([^"]+)"/)) !== null) {
-                    words.push(phrase[1]);
-                    ss = ss.substring(0, phrase.index) + ss.substring(phrase.index + phrase[0].length);
-                }
-                ss = ss.trim();
-                if (ss.length) words = words.concat(ss.split(/\s+/));
-                for (var k = 0, kl = list.items.length; k < kl; k++) {
-                    var item = list.items[k];
-                    item.found = false;
-                    if (!words.length) continue
-                    for (var i = 0, il = words.length; i < il; i++) {
-                        var word_found = false;
-                        for (var j = 0, jl = columns.length; j < jl; j++) {
-                            var values = item.values(),
-                                column = columns[j];
-                            if (values.hasOwnProperty(column) && values[column] !== undefined && values[column] !== null) {
-                                var text = typeof values[column] !== 'string' ? values[column].toString() : values[column];
-                                if (text.toLowerCase().indexOf(words[i]) !== -1) {
-                                    word_found = true;
-                                    break
-                                }
-                            }
-                        }
-                        if (!word_found) break
-                    }
-                    item.found = word_found;
-                }
-            },
-            reset: function () {
-                list.reset.search();
-                list.searched = false;
-            },
-        };
-        var searchMethod = function (str) {
-            list.trigger('searchStart');
-            prepare.resetList();
-            prepare.setSearchString(str);
-            prepare.setOptions(arguments); 
-            prepare.setColumns();
-            if (searchString === '') {
-                search.reset();
-            } else {
-                list.searched = true;
-                if (customSearch) {
-                    customSearch(searchString, columns);
-                } else {
-                    search.list();
-                }
-            }
-            list.update();
-            list.trigger('searchComplete');
-            return list.visibleItems
-        };
-        list.handlers.searchStart = list.handlers.searchStart || [];
-        list.handlers.searchComplete = list.handlers.searchComplete || [];
-        list.utils.events.bind(
-            list.utils.getByClass(list.listContainer, list.searchClass),
-            'keyup',
-            list.utils.events.debounce(function (e) {
-                var target = e.target || e.srcElement, 
-                    alreadyCleared = target.value === '' && !list.searched;
-                if (!alreadyCleared) {
-                    searchMethod(target.value);
-                }
-            }, list.searchDelay)
-        );
-        list.utils.events.bind(list.utils.getByClass(list.listContainer, list.searchClass), 'input', function (e) {
-            var target = e.target || e.srcElement;
-            if (target.value === '') {
-                searchMethod('');
-            }
-        });
-        return searchMethod
-    };
-    var filter = function (list) {
-        list.handlers.filterStart = list.handlers.filterStart || [];
-        list.handlers.filterComplete = list.handlers.filterComplete || [];
-        return function (filterFunction) {
-            list.trigger('filterStart');
-            list.i = 1; 
-            list.reset.filter();
-            if (filterFunction === undefined) {
-                list.filtered = false;
-            } else {
-                list.filtered = true;
-                var is = list.items;
-                for (var i = 0, il = is.length; i < il; i++) {
-                    var item = is[i];
-                    if (filterFunction(item)) {
-                        item.filtered = true;
-                    } else {
-                        item.filtered = false;
-                    }
-                }
-            }
-            list.update();
-            list.trigger('filterComplete');
-            return list.visibleItems
-        }
-    };
-    var sort = function (list) {
-        var buttons = {
-            els: undefined,
-            clear: function () {
-                for (var i = 0, il = buttons.els.length; i < il; i++) {
-                    list.utils.classes(buttons.els[i]).remove('asc');
-                    list.utils.classes(buttons.els[i]).remove('desc');
-                }
-            },
-            getOrder: function (btn) {
-                var predefinedOrder = list.utils.getAttribute(btn, 'data-order');
-                if (predefinedOrder == 'asc' || predefinedOrder == 'desc') {
-                    return predefinedOrder
-                } else if (list.utils.classes(btn).has('desc')) {
-                    return 'asc'
-                } else if (list.utils.classes(btn).has('asc')) {
-                    return 'desc'
-                } else {
-                    return 'asc'
-                }
-            },
-            getInSensitive: function (btn, options) {
-                var insensitive = list.utils.getAttribute(btn, 'data-insensitive');
-                if (insensitive === 'false') {
-                    options.insensitive = false;
-                } else {
-                    options.insensitive = true;
-                }
-            },
-            setOrder: function (options) {
-                for (var i = 0, il = buttons.els.length; i < il; i++) {
-                    var btn = buttons.els[i];
-                    if (list.utils.getAttribute(btn, 'data-sort') !== options.valueName) {
-                        continue
-                    }
-                    var predefinedOrder = list.utils.getAttribute(btn, 'data-order');
-                    if (predefinedOrder == 'asc' || predefinedOrder == 'desc') {
-                        if (predefinedOrder == options.order) {
-                            list.utils.classes(btn).add(options.order);
-                        }
-                    } else {
-                        list.utils.classes(btn).add(options.order);
-                    }
-                }
-            },
-        };
-        var sort = function () {
-            list.trigger('sortStart');
-            var options = {};
-            var target = arguments[0].currentTarget || arguments[0].srcElement || undefined;
-            if (target) {
-                options.valueName = list.utils.getAttribute(target, 'data-sort');
-                buttons.getInSensitive(target, options);
-                options.order = buttons.getOrder(target);
-            } else {
-                options = arguments[1] || options;
-                options.valueName = arguments[0];
-                options.order = options.order || 'asc';
-                options.insensitive = typeof options.insensitive == 'undefined' ? true : options.insensitive;
-            }
-            buttons.clear();
-            buttons.setOrder(options);
-            var customSortFunction = options.sortFunction || list.sortFunction || null,
-                multi = options.order === 'desc' ? -1 : 1,
-                sortFunction;
-            if (customSortFunction) {
-                sortFunction = function (itemA, itemB) {
-                    return customSortFunction(itemA, itemB, options) * multi
-                };
-            } else {
-                sortFunction = function (itemA, itemB) {
-                    var sort = list.utils.naturalSort;
-                    sort.alphabet = list.alphabet || options.alphabet || undefined;
-                    if (!sort.alphabet && options.insensitive) {
-                        sort = list.utils.naturalSort.caseInsensitive;
-                    }
-                    return sort(itemA.values()[options.valueName], itemB.values()[options.valueName]) * multi
-                };
-            }
-            list.items.sort(sortFunction);
-            list.update();
-            list.trigger('sortComplete');
-        };
-        list.handlers.sortStart = list.handlers.sortStart || [];
-        list.handlers.sortComplete = list.handlers.sortComplete || [];
-        buttons.els = list.utils.getByClass(list.listContainer, list.sortClass);
-        list.utils.events.bind(buttons.els, 'click', sort);
-        list.on('searchStart', buttons.clear);
-        list.on('filterStart', buttons.clear);
-        return sort
-    };
-    var fuzzy = function (text, pattern, options) {
-        var Match_Location = options.location || 0;
-        var Match_Distance = options.distance || 100;
-        var Match_Threshold = options.threshold || 0.4;
-        if (pattern === text) return true 
-        if (pattern.length > 32) return false 
-        var loc = Match_Location,
-            s = (function () {
-                var q = {},
-                    i;
-                for (i = 0; i < pattern.length; i++) {
-                    q[pattern.charAt(i)] = 0;
-                }
-                for (i = 0; i < pattern.length; i++) {
-                    q[pattern.charAt(i)] |= 1 << (pattern.length - i - 1);
-                }
-                return q
-            })();
-        function match_bitapScore_(e, x) {
-            var accuracy = e / pattern.length,
-                proximity = Math.abs(loc - x);
-            if (!Match_Distance) {
-                return proximity ? 1.0 : accuracy
-            }
-            return accuracy + proximity / Match_Distance
-        }
-        var score_threshold = Match_Threshold, 
-            best_loc = text.indexOf(pattern, loc); 
-        if (best_loc != -1) {
-            score_threshold = Math.min(match_bitapScore_(0, best_loc), score_threshold);
-            best_loc = text.lastIndexOf(pattern, loc + pattern.length);
-            if (best_loc != -1) {
-                score_threshold = Math.min(match_bitapScore_(0, best_loc), score_threshold);
-            }
-        }
-        var matchmask = 1 << (pattern.length - 1);
-        best_loc = -1;
-        var bin_min, bin_mid;
-        var bin_max = pattern.length + text.length;
-        var last_rd;
-        for (var d = 0; d < pattern.length; d++) {
-            bin_min = 0;
-            bin_mid = bin_max;
-            while (bin_min < bin_mid) {
-                if (match_bitapScore_(d, loc + bin_mid) <= score_threshold) {
-                    bin_min = bin_mid;
-                } else {
-                    bin_max = bin_mid;
-                }
-                bin_mid = Math.floor((bin_max - bin_min) / 2 + bin_min);
-            }
-            bin_max = bin_mid;
-            var start = Math.max(1, loc - bin_mid + 1);
-            var finish = Math.min(loc + bin_mid, text.length) + pattern.length;
-            var rd = Array(finish + 2);
-            rd[finish + 1] = (1 << d) - 1;
-            for (var j = finish; j >= start; j--) {
-                var charMatch = s[text.charAt(j - 1)];
-                if (d === 0) {
-                    rd[j] = ((rd[j + 1] << 1) | 1) & charMatch;
-                } else {
-                    rd[j] = (((rd[j + 1] << 1) | 1) & charMatch) | (((last_rd[j + 1] | last_rd[j]) << 1) | 1) | last_rd[j + 1];
-                }
-                if (rd[j] & matchmask) {
-                    var score = match_bitapScore_(d, j - 1);
-                    if (score <= score_threshold) {
-                        score_threshold = score;
-                        best_loc = j - 1;
-                        if (best_loc > loc) {
-                            start = Math.max(1, 2 * loc - best_loc);
-                        } else {
-                            break
-                        }
-                    }
-                }
-            }
-            if (match_bitapScore_(d + 1, loc) > score_threshold) {
-                break
-            }
-            last_rd = rd;
-        }
-        return best_loc < 0 ? false : true
-    };
-    /*  var events$1 = events$3,
-         extend$1 = extend$2,
-         toString$1 = toString$2,
-         getByClass$1 = getByClass$2,
-         fuzzy = fuzzy$1; */
-    var fuzzySearch = function (list, options) {
-        options = options || {};
-        options = extend(
-            {
-                location: 0,
-                distance: 100,
-                threshold: 0.4,
-                multiSearch: true,
-                searchClass: '[fuzzy]',
-            },
-            options
-        );
-        var fuzzySearch = {
-            search: function (searchString, columns) {
-                var searchArguments = options.multiSearch ? searchString.replace(/ +$/, '').split(/ +/) : [searchString];
-                for (var k = 0, kl = list.items.length; k < kl; k++) {
-                    fuzzySearch.item(list.items[k], columns, searchArguments);
-                }
-            },
-            item: function (item, columns, searchArguments) {
-                var found = true;
-                for (var i = 0; i < searchArguments.length; i++) {
-                    var foundArgument = false;
-                    for (var j = 0, jl = columns.length; j < jl; j++) {
-                        if (fuzzySearch.values(item.values(), columns[j], searchArguments[i])) {
-                            foundArgument = true;
-                        }
-                    }
-                    if (!foundArgument) {
-                        found = false;
-                    }
-                }
-                item.found = found;
-            },
-            values: function (values, value, searchArgument) {
-                if (values.hasOwnProperty(value)) {
-                    var text = toString(values[value]).toLowerCase();
-                    if (fuzzy(text, searchArgument, options)) {
-                        return true
-                    }
-                }
-                return false
-            },
-        };
-        events.bind(
-            getByClass(list.listContainer, options.searchClass),
-            'keyup',
-            list.utils.events.debounce(function (e) {
-                var target = e.target || e.srcElement; 
-                list.search(target.value, fuzzySearch.search);
-            }, list.searchDelay)
-        );
-        return function (str, columns) {
-            list.search(str, columns, fuzzySearch.search);
-        }
-    };
-    var naturalSort = naturalCompare_1,
-        indexOf = indexOf_1;
-    var src = function (id, options, values) {
-        var self = this,
-            init,
-            Item = item(self),
-            addAsync = AddAsync(self),
-            initPagination = pagination(self);
-        init = {
-            start: function () {
-                self.listContainer = axIdToDom(id);
-                if (options && options.searchClass == '.pagination-search-that-is-not-supposed-to-exist') {
-                    self.options = options;
-                } else {
-                    var dft = {
-                        valueNames: ['name'],
-                        page: 10,
-                        i: 1,
-                        item: '',
-                        searchDelay: 0,
-                        listClass: '[list]',
-                        searchClass: '[search]',
-                        sortClass: '[data-sort]',
-                        filterClass: '[filter]',
-                        resetClass: '[reset]',
-                        pagination: {
-                            paginationClass: ".ax-pagination",
-                            textFirst: '首页',
-                            textLast: '尾页',
-                            textPrev: '上一页',
-                            textNext: '下一页',
-                            type: 'regular',
-                            innerWindow: 2,
-                            left: 2,
-                            right: 2,
-                            totalShow: false,
-                            prevShow: true,
-                            nextShow: true,
-                            firstShow: true,
-                            lastShow: true,
-                            pagesShow: true,
-                        },
-                    }
-                    var copyPagi = axClone(dft.pagination);
-                    self.options = axExtend(dft, options, self.listContainer);
-                    if (self.options.pagination == true) {
-                        self.options.pagination = copyPagi;
-                    }
-                    if (axType(self.options.pagination) == 'Array') {
-                        var newOptions = [];
-                        self.options.pagination.forEach(item => {
-                            item = axMerge(copyPagi, item)
-                            newOptions.push(item);
-                        })
-                        self.options.pagination = newOptions;
-                    }
-                    self.listContainer && !!self.listContainer.getAttribute('axList') ? self.referName = self.listContainer.getAttribute('axList') : self.referName = '';
-                    axLists.push({ name: self.referName, instance: self });
-                }
-                self.listClass = self.options.listClass ? self.options.listClass : '.ax-list-body';
-                self.searchClass = self.options.searchClass ? self.options.searchClass : '.ax-list-search';
-                self.sortClass = self.options.sortClass ? self.options.sortClass : '.ax-list-sort';
-                self.page = self.options.page ? self.options.page : 1000;
-                self.i = self.options.i ? self.options.i : 1;
-                self.items = [];
-                self.visibleItems = [];
-                self.matchingItems = [];
-                self.searched = false;
-                self.filtered = false;
-                self.searchColumns = undefined;
-                self.searchDelay = self.options.searchDelay ? self.options.searchDelay : 0;
-                self.handlers = { updated: [] };
-                self.valueNames = [];
-                self.utils = {
-                    getByClass: getByClass,
-                    extend: extend,
-                    indexOf: indexOf,
-                    events: events,
-                    toString: toString,
-                    naturalSort: naturalSort,
-                    classes: classes,
-                    getAttribute: getAttribute,
-                    toArray: toArray,
-                };
-                self.utils.extend(self, self.options);
-                if (!self.listContainer) {
-                    return
-                }
-                self.list = getByClass(self.listContainer, self.listClass, true);
-                self.parse = parse(self);
-                self.templater = templater(self);
-                self.search = search(self);
-                self.filter = filter(self);
-                self.sort = sort(self);
-                self.fuzzySearch = fuzzySearch(self, self.options.fuzzySearch);
-                this.handlers();
-                this.items();
-                if (self.options && self.options.searchClass != '.pagination-search-that-is-not-supposed-to-exist') {
-                    this.pagination();
-                }
-                self.listContainer.querySelectorAll(self.options.filterClass).forEach(item => {
-                    var name = item.getAttribute('filter').match(/(\S*):/)[1].trim(),
-                        value = item.getAttribute('filter').match(/:(\S*)/)[1].trim();
-                    item.onclick = function () {
-                        self.filter(function (i) {
-                            if (i.values()[name] == value) {
-                                return true;
-                            } else {
-                                return false;
-                            }
-                        });
-                        return false;
-                    }
-                })
-                self.listContainer.querySelectorAll(self.options.resetClass).forEach(item => {
-                    item.onclick = function () {
-                        self.filter();
-                        self.search();
-                        return false;
-                    }
-                })
-                self.on('searchComplete', function (list) {
-                    var fastDom = self.listContainer.querySelector('.ax-fast-list');
-                    if (!self.listContainer.querySelector(self.options.searchClass).value || !list.matchingItems.length) {
-                        fastDom ? axSlideUp(fastDom) : null;
-                    } else {
-                        fastDom ? axSlideDown(fastDom) : null;
-                    }
-                })
-                self.update();
-            },
-            handlers: function () {
-                for (var handler in self.handlers) {
-                    if (self[handler] && self.handlers.hasOwnProperty(handler)) {
-                        self.on(handler, self[handler]);
-                    }
-                }
-            },
-            items: function () {
-                self.parse(self.list);
-                if (values !== undefined) {
-                    self.add(values);
-                }
-            },
-            pagination: function () {
-                if (self.options.pagination !== undefined) {
-                    if (self.options.pagination === true) {
-                        self.options.pagination = [{}];
-                    }
-                    if (self.options.pagination[0] === undefined) {
-                        self.options.pagination = [self.options.pagination];
-                    }
-                    for (var i = 0, il = self.options.pagination.length; i < il; i++) {
-                        if (self.options.pagination && self.listContainer.querySelector(self.options.pagination[i].paginationClass)) {
-                            initPagination(self.options.pagination[i]);
-                        }
-                    }
-                }
-            },
-        };
-        /*
-         * Re-parse the List, use if html have changed
-         */
-        this.reIndex = function () {
-            self.items = [];
-            self.visibleItems = [];
-            self.matchingItems = [];
-            self.searched = false;
-            self.filtered = false;
-            self.parse(self.list);
-        };
-        this.toJSON = function () {
-            var json = [];
-            for (var i = 0, il = self.items.length; i < il; i++) {
-                json.push(self.items[i].values());
-            }
-            return json
-        };
-        /*
-         * Add object to list,提示：分页专用，创建分页码
-         */
-        this.add = function (values, callback) {
-            if (values.length === 0) {
-                return
-            }
-            if (callback) {
-                addAsync(values.slice(0), callback);
-                return
-            }
-            var added = [],
-                notCreate = false;
-            if (values[0] === undefined) {
-                values = [values];
-            }
-            for (var i = 0, il = values.length; i < il; i++) {
-                var item = null;
-                notCreate = self.items.length > self.page ? true : false;
-                item = new Item(values[i], undefined, notCreate);
-                self.items.push(item);
-                added.push(item);
-            }
-            self.update();
-            return added
-        };
-        this.show = function (i, page) {
-            this.i = i;
-            this.page = page;
-            self.update();
-            return self
-        };
-        /* Removes object from list.
-         * Loops through the list and removes objects where
-         * property "valuename" === value
-         */
-        this.remove = function (valueName, value, options) {
-            var found = 0;
-            for (var i = 0, il = self.items.length; i < il; i++) {
-                if (self.items[i].values()[valueName] == value) {
-                    self.templater.remove(self.items[i], options);
-                    self.items.splice(i, 1);
-                    il--;
-                    i--;
-                    found++;
-                }
-            }
-            self.update();
-            return found
-        };
-        /* Gets the objects in the list which
-         * property "valueName" === value
-         */
-        this.get = function (valueName, value) {
-            var matchedItems = [];
-            for (var i = 0, il = self.items.length; i < il; i++) {
-                var item = self.items[i];
-                if (item.values()[valueName] == value) {
-                    matchedItems.push(item);
-                }
-            }
-            return matchedItems
-        };
-        /*
-         * Get size of the list
-         */
-        this.size = function () {
-            return self.items.length
-        };
-        /*
-         * Removes all items from the list
-         */
-        this.clear = function () {
-            self.templater.clear();
-            self.items = [];
-            return self
-        };
-        this.on = function (event, callback) {
-            self.handlers[event].push(callback);
-            return self
-        };
-        this.off = function (event, callback) {
-            var e = self.handlers[event];
-            var index = indexOf(e, callback);
-            if (index > -1) {
-                e.splice(index, 1);
-            }
-            return self
-        };
-        this.trigger = function (event) {
-            var i = self.handlers[event].length;
-            while (i--) {
-                self.handlers[event][i](self);
-            }
-            return self
-        };
-        this.reset = {
-            filter: function () {
-                var is = self.items,
-                    il = is.length;
-                while (il--) {
-                    is[il].filtered = false;
-                }
-                return self
-            },
-            search: function () {
-                var is = self.items,
-                    il = is.length;
-                while (il--) {
-                    is[il].found = false;
-                }
-                return self
-            },
-        };
-        this.update = function () {
-            var is = self.items,
-                il = is.length;
-            self.visibleItems = [];
-            self.matchingItems = [];
-            self.templater.clear();
-            for (var i = 0; i < il; i++) {
-                if (is[i].matching() && self.matchingItems.length + 1 >= self.i && self.visibleItems.length < self.page) {
-                    is[i].show();
-                    self.visibleItems.push(is[i]);
-                    self.matchingItems.push(is[i]);
-                } else if (is[i].matching()) {
-                    self.matchingItems.push(is[i]);
-                    is[i].hide();
-                } else {
-                    is[i].hide();
-                }
-            }
-            self.trigger('updated');
-            return self
-        };
-        init.start();
-    };
-    return src;
-}));
+})();
 /*!
  * 轮播插件axSwipe，使用方法：new axSwipe('#id',{参数})。源自Swiper v8.1.4 from https://swiperjs.com | AXUI做了部分修改
  */
@@ -23603,6 +23110,403 @@ class axLightbox {
     });
 })();
 /*!
+* 插件：网页媒体懒加载；使用方法：new axLazyload('#id',{参数})
+*/
+class axLazyload {
+    constructor(elem, options) {
+        this.targetDom = axIdToDom(elem);
+        this.options = axExtend({
+            type: 'single', 
+            offset: '0px', 
+            visible: [0, 0.5, 1], 
+            parent: null,
+            animation: 'ax-fadeIn',
+            dataName: 'src',
+        }, options, this.targetDom);
+        this.handlers = {};
+        this.items = [];
+        this.init();
+    }
+    init() {
+        if (this.options.type != 'single' && !this.targetDom.classList.contains('ax-lazyload')) {
+            this.targetDom.classList.add('ax-lazyload');
+        }
+        this.interactOpt();
+        this.active();
+    }
+    active() {
+        if (this.options.type == 'single') {
+            this.mediaInteract();
+            this.items.push(this.targetDom);
+            this.mediaInteract().observe(this.targetDom);
+        } else if (this.options.type == 'multiple') {
+            this.mediaInteract();
+            this.items = [...this.targetDom.querySelectorAll('[data-' + this.options.dataName + ']')];
+            this.items.forEach(i => {
+                this.mediaInteract().observe(i);
+            });
+        }
+    }
+    interactOpt() {
+        this.offset = this.options.offset.replace(/\s*/g, "").split(",");
+        if (this.offset.length == 1) {
+            this.offset.push(...this.offset)
+        } else if (offset.length > 2) {
+            this.offset.splice(0, 2);
+        }
+        return {
+            root: this.options.parent,
+            rootMargin: this.offset[0] + ' 0px ' + this.offset[1] + ' 0px',
+            threshold: this.options.visible,
+        }
+    }
+    mediaInteract() {
+        let interact = new IntersectionObserver(entries => {
+            entries.forEach(i => {
+                if (i.isIntersecting) {
+                    if (i.target.hasAttribute('data-' + this.options.dataName)) {
+                        i.target.classList.add(this.options.animation);
+                        if (i.target.nodeName == 'VIDEO' || i.target.nodeName == 'AUDIO') {
+                            i.target.src = i.target.dataset[this.options.dataName];
+                            i.target.querySelector('source').setAttribute('src', i.target.dataset[this.options.dataName]);
+                        } else {
+                            i.target.setAttribute('src', i.target.dataset[this.options.dataName]);
+                        }
+                        i.target.removeAttribute('data-' + this.options.dataName);
+                        interact.unobserve(i.target);
+                        'shown' in this.handlers ? this.emit('shown', i.target) : null;
+                    }
+                }
+            });
+        }, this.interactOpt());
+        return interact;
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
+    document.querySelectorAll('[axLazyload]').forEach(element => {
+        new axLazyload(element, { type: 'multiple' });
+    });
+    document.querySelectorAll('[lazyload]').forEach(element => {
+        new axLazyload(element);
+    });
+})();
+/*!
+* 插件：列表异步无限滚动；使用方法：new axInfinite('#id',{参数})
+*/
+class axInfinite {
+    constructor(elem, options) {
+        this.targetDom = axIdToDom(elem);
+        this.options = axExtend({
+            type: 'list', 
+            offset: '0px', 
+            visible: [0, 0.5, 1], 
+            url: '', 
+            urlMax: 20,
+            data: [], 
+            template: null, 
+            selector: '',
+            trigger: 'scroll',
+            parent: null,
+            animation: 'ax-fadeIn',
+            start: 0,
+            count: 10, 
+            finishText: '没有更多内容了',
+            nextBtn: '<button class="ax-btn ax-btn-primary ax-longer">查看更多</button>',
+            active:'',
+        }, options, this.targetDom);
+        this.handlers = {};
+        this.start = this.options.start;
+        this.data = this.options.data;
+        this.loadStatus = this.targetDom.querySelector('.ax-infinite-status') ? this.targetDom.querySelector('.ax-infinite-status') : axAddElem('div', { class: 'ax-infinite-status' });
+        this.loadingDiv = axAddElem('div', { class: 'ax-infinite-loading' }, '<span class="ax-loading"><i></i></span>');
+        this.resultDiv = axAddElem('div', { class: 'ax-infinite-tips' });
+        this.nextDiv = axAddElem('div', { class: 'ax-infinite-next' }, this.options.nextBtn);
+        this.nextButton = this.nextDiv.firstElementChild;
+        this.loadStatus.insertAdjacentElement('afterbegin', this.loadingDiv);
+        this.loadStatus.appendChild(this.resultDiv);
+        this.url = [];
+        if (typeof this.options.url == 'string') {
+            if (this.options.url.indexOf('{') > 0 && this.options.url.indexOf('}') > 0) {
+                let pageStart = ~~this.options.url.match(/\{(\S*)\}/)[1],
+                    str = `{${pageStart}}`;
+                for (let i = pageStart; i <= pageStart + this.options.urlMax; i++) {
+                    this.url.push(this.options.url.replace(str, i));
+                }
+            } else if (this.options.url == 'pagination') {
+                let pages = this.loadStatus.querySelectorAll('[data-page]');
+                [...pages].forEach(i => {
+                    this.url.push(i.href);
+                });
+            } else {
+                this.options.url ? this.url = [this.options.url] : null;
+            }
+        } else if (axType(this.options.url) == 'Array') {
+            this.url = this.options.url;
+        }
+        if (!this.options.template) {
+            this.template = '';
+        } else {
+            if (this.options.template.trim().substr(0, 1) == '#') {
+                this.template = document.querySelector(this.options.template).innerHTML
+            } else {
+                this.template = this.options.template;
+            }
+        }
+        this.items = [];
+        this.init();
+    }
+    init() {
+        let _this = this;
+        if (this.options.type != 'image' && !this.targetDom.classList.contains('ax-infinite')) {
+            this.targetDom.classList.add('ax-infinite');
+        }
+        this.interactOpt();
+        if (this.options.trigger == 'scroll') {
+            this.active();
+        } else if (this.options.trigger == 'clicks') {
+            this.loadStatus.appendChild(this.nextDiv);
+            this.loadStatus.setAttribute('preloading', '');
+            this.targetDom.appendChild(this.loadStatus);
+            this.nextButton.onclick = function () {
+                _this.loadStatus.removeAttribute('preloading', '');
+                _this.loadStatus.removeAttribute('loaded', '');
+                _this.loadStatus.setAttribute('loading', '');
+                if (_this.options.type == 'pages') {
+                    _this.pageAjax(_this.start);
+                } else if (_this.options.url && _this.options.template) {
+                    if (_this.options.type == 'json') {
+                        _this.jsonAjax(_this.start);
+                    } else if (_this.options.type == 'sql') {
+                        _this.sqlAjax(_this.start, _this.options.count);
+                    }
+                }
+            }
+        }
+    }
+    active(url, callback) {
+        let _this = this;
+        if (!axIsEmpty(url)) {
+            if (axType(url) == 'Array') {
+                this.url.push(...url)
+            } else {
+                this.url.push(url);
+            }
+        }
+        if (this.options.type == 'pages') {
+            this.asyncInteract(function () {
+                _this.pageAjax(_this.start);
+            });
+        } else if (!axIsEmpty(this.url) && this.options.template) {
+            if (this.options.type == 'json') {
+                this.asyncInteract(function () {
+                    _this.jsonAjax(_this.start);
+                });
+            } else if (this.options.type == 'sql') {
+                this.asyncInteract(function () {
+                    _this.sqlAjax(_this.start, _this.options.count);
+                });
+            }
+        } else if (this.options.type == 'list') {
+            if (!axIsEmpty(this.data)) {
+                this.renderList(this.data);
+            }
+            let children = [...this.targetDom.childNodes].filter(i => i.nodeType == 1);
+            children.forEach(i => {
+                if (axOffset(i).top > window.innerHeight) {
+                    i.setAttribute('infinite', '');
+                    this.items.push(i);
+                }
+            });
+            this.listInteract();
+            this.items.forEach(i => {
+                this.listInteract().observe(i);
+            });
+        }
+        callback && callback.call(this);
+        this.options.active && this.options.active.call(this);
+        'activated' in this.handlers ? this.emit('activated','') : null;
+    }
+    interactOpt() {
+        this.offset = this.options.offset.replace(/\s*/g, "").split(",");
+        if (this.offset.length == 1) {
+            this.offset.push(...this.offset)
+        } else if (offset.length > 2) {
+            this.offset.splice(0, 2);
+        }
+        return {
+            root: this.options.parent,
+            rootMargin: this.offset[0] + ' 0px ' + this.offset[1] + ' 0px',
+            threshold: this.options.visible,
+        }
+    }
+    listInteract() {
+        let interact = new IntersectionObserver(entries => {
+            entries.forEach(i => {
+                if (i.isIntersecting) {
+                    if (i.target.hasAttribute('infinite')) {
+                        i.target.classList.add(this.options.animation);
+                        i.target.removeAttribute('infinite');
+                        interact.unobserve(i.target);
+                    }
+                    'shown' in this.handlers ? this.emit('shown', i.target) : null;
+                }
+            });
+        }, this.interactOpt());
+        return interact;
+    }
+    asyncInteract(callback) {
+        this.targetDom.appendChild(this.loadStatus);
+        this.asyncObserver = new IntersectionObserver(entries => {
+            if (entries[0].isIntersecting) {
+                callback();
+            }
+        }, this.interactOpt());
+        this.asyncObserver.observe(this.loadStatus);
+    }
+    itemInteract() {
+        let interact = new IntersectionObserver(entries => {
+            entries.forEach(i => {
+                if (i.isIntersecting) {
+                    if (i.target.hasAttribute('infinite')) {
+                        i.target.classList.add(this.options.animation);
+                        i.target.removeAttribute('infinite');
+                        interact.unobserve(i.target);
+                    'shown' in this.handlers ? this.emit('shown', i.target) : null;
+                    }
+                }
+            });
+        }, this.interactOpt());
+        return interact;
+    }
+    renderList(data) {
+        let fragment = document.createDocumentFragment();
+        data.forEach(i => {
+            let item = axStrToDom(axTplEngine(this.template, i));
+            item.setAttribute('infinite', '');
+            this.items.push(item);
+            fragment.appendChild(item);
+        });
+        this.targetDom.appendChild(fragment);
+        !this.options.type == 'list' ? this.targetDom.appendChild(this.loadStatus) : null;
+    }
+    loadFinish() {
+        this.options.trigger != 'clicks' ? this.asyncObserver.disconnect() : null;
+        this.loadStatus.removeAttribute('loading');
+        this.loadStatus.removeAttribute('loaded');
+        this.loadStatus.setAttribute('finish', '');
+        this.loadingDiv ? this.loadingDiv.remove() : null;
+        this.nextDiv ? this.nextDiv.remove() : null;
+        this.resultDiv.innerHTML = this.options.finishText;
+        'finished' in this.handlers ? this.emit('finished', '') : null;
+    }
+    pageAjax(urlStart) {
+        let _this = this;
+        axAjax({
+            url: _this.url[urlStart],
+            selector: _this.options.selector,
+            error: function (data, state) {
+                console.error(`发生错误：${state}，可能是地址错误！`);
+                _this.loadFinish();
+            },
+            success: function (content) {
+                _this.targetDom.insertAdjacentHTML('beforeEnd', content);
+                _this.targetDom.appendChild(_this.loadStatus);
+                if (_this.options.trigger == 'clicks') {
+                    _this.loadStatus.removeAttribute('loading', '');
+                    _this.loadStatus.setAttribute('loaded', '');
+                }
+                'loaded' in _this.handlers ? _this.emit('loaded', content) : null;
+                _this.start++;
+                if (_this.start >= _this.url.length) {
+                    _this.loadFinish();
+                }
+            }
+        });
+    }
+    jsonAjax(urlStart) {
+        let _this = this;
+        axAjax({
+            url: _this.url[urlStart],
+            error: function (data, state) {
+                console.error(`发生错误：${state}，可能是地址错误！`);
+                _this.loadFinish();
+            },
+            success: function (content) {
+                _this.itemInteract();
+                _this.renderList(content);
+                _this.targetDom.appendChild(_this.loadStatus);
+                if (_this.options.trigger == 'clicks') {
+                    _this.loadStatus.removeAttribute('loading', '');
+                    _this.loadStatus.setAttribute('loaded', '');
+                }
+                _this.items.forEach(i => {
+                    _this.itemInteract().observe(i);
+                });
+                'loaded' in _this.handlers ? _this.emit('loaded', content) : null;
+                _this.start++;
+                if (_this.start >= _this.url.length) {
+                    _this.loadFinish();
+                }
+            }
+        });
+    }
+    sqlAjax(sqlStart, sqlCount) {
+        let _this = this;
+        axAjax({
+            url: _this.options.url,
+            data: { start: sqlStart, count: sqlCount },
+            error: function (data, state) {
+                console.error(`发生错误：${state}，可能是地址错误！`);
+                _this.loadFinish();
+            },
+            success: function (content) {
+                _this.itemInteract();
+                _this.renderList(content.data);
+                _this.targetDom.appendChild(_this.loadStatus);
+                if (_this.options.trigger == 'clicks') {
+                    _this.loadStatus.removeAttribute('loading', '');
+                    _this.loadStatus.setAttribute('loaded', '');
+                }
+                _this.items.forEach(i => {
+                    _this.itemInteract().observe(i);
+                });
+                'loaded' in _this.handlers ? _this.emit('loaded', content.data) : null;
+                _this.start += sqlCount;
+                if (_this.start >= content.total) {
+                    _this.loadFinish();
+                }
+            }
+        });
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
+    document.querySelectorAll('[axInfinite]').forEach(element => {
+        new axInfinite(element);
+    });
+})();
+/*!
 *项目所需的立即执行的代码片段，避免污染全局变量
 */
 (() => {
@@ -23644,12 +23548,8 @@ class axLightbox {
         if (_this) {
             _this.addEventListener('click', function () {
                 let elem = this.parentElement.previousElementSibling;
-                let list = this.parentElement.parentElement.querySelector('.ax-fast-list');
                 if (elem.nodeName == 'INPUT' || elem.nodeName == 'TEXTAREA') {
                     elem.value = '';
-                }
-                if (list) {
-                    axSlideUp(list);
                 }
             }, false);
         }
@@ -23825,42 +23725,6 @@ class axLightbox {
             }
         };
     }
-    /*     const H_SCROLLNAV = document.querySelectorAll('.ax-scrollnav-h');
-        for (let i = 0; i < H_SCROLLNAV.length; i++) {
-            let _this = H_SCROLLNAV[i],
-                outer = _this.querySelector('.ax-scrollnav'),
-                inner = _this.querySelector('.ax-scrollnav-list'),
-                li = inner.querySelectorAll('li'),
-                width = 0;
-            for (let k = 0; k < li.length; k++) {
-                width += parseInt(axWidth(li[k], 'outer'));
-            }
-            if (parseInt(getComputedStyle(outer).width) < width) {
-                inner.style.width = width;
-                outer.style.overflowX = 'auto';
-            }
-        } */
-    const V_SCROLLNAV = document.querySelectorAll('.ax-scrollnav-v');
-    for (let i = 0; i < V_SCROLLNAV.length; i++) {
-        let _this = V_SCROLLNAV[i],
-            close = _this.querySelector('.ax-close');
-        if (close) {
-            close.addEventListener('click', () => {
-                if (_this.classList.contains('ax-hide')) {
-                    _this.classList.remove('ax-hide');
-                    axCookie.set('scrollnav', 'show');
-                } else {
-                    _this.classList.add('ax-hide');
-                    axCookie.set('scrollnav', 'hide');
-                }
-            }, false);
-        }
-        if (axCookie.get("scrollnav") === 'hide') {
-            _this.classList.add("ax-hide");
-        } else {
-            _this.classList.remove("ax-hide");
-        }
-    }
     const BACKTOP = document.querySelectorAll('.ax-backtop');
     for (let i = 0; i < BACKTOP.length; i++) {
         let _this = BACKTOP[i],
@@ -23883,12 +23747,6 @@ class axLightbox {
         TOTOP[i].addEventListener('click', function () {
             axScrollTo();
         }, false);
-    }
-    const LAZY = document.querySelectorAll('.ax-lazy');
-    for (let i = 0; i < LAZY.length; i++) {
-        if (axOffset(LAZY[i]).top > window.innerHeight) {
-            LAZY[i].classList.add("ax-hide");
-        }
     }
     const RIPPLE = document.querySelectorAll('.ax-ripple');
     for (let i = 0; i < RIPPLE.length; i++) {
@@ -23994,12 +23852,6 @@ class axLightbox {
                 if (TOTOP[i].querySelector('a')) {
                     TOTOP[i].querySelector('a').classList.remove('ax-show');
                 }
-            }
-        }
-        for (let i = 0; i < LAZY.length; i++) {
-            if (axOffset(LAZY[i]).top < document.documentElement.scrollTop + window.innerHeight) {
-                LAZY[i].classList.remove('ax-hide');
-                LAZY[i].classList.add('ax-show');
             }
         }
     }, false);
