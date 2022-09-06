@@ -1,9 +1,9 @@
 @charset "utf-8";
 /*
- *Last modified: 2022-07-12 20:33:10
+ *Last modified: 2022-09-06 16:22:28
  *Filename: ax-response.css
  *Description: Global CSS
- *Version: v2.0.0Beta
+ *Version: v2.0.1
  *Website:www.axui.cn or ax.hobly.cn
  *Contact:3217728223@qq.com
  *Author:Michael
@@ -635,18 +635,6 @@
   }
   .ax-message[data-position="center-center"] {
     transform: translate(0, -50%);
-  }
-  /*scrollnav*/
-  .ax-scrollnav-v {
-    background-color: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ebebeb;
-    border-radius: 0.3rem;
-    top: auto;
-    bottom: 1.4rem;
-  }
-  .ax-scrollnav-v .ax-close {
-    top: calc(-3.8rem - 1.4rem);
-    bottom: auto;
   }
 }
 /* more than Telephone+pad*/
