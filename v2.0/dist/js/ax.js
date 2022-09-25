@@ -1,8 +1,8 @@
 /*!
- *Last modified: 2022-09-06 16:24:37
+ *Last modified: 2022-09-25 12:02:59
  *Filename: ax.js
  *Description: Global JS
- *Version: v2.0.1
+ *Version: v2.0.2
  *Website:www.axui.cn or ax.hobly.cn
  *Contact:3217728223@qq.com
  *Author:Michael
@@ -398,6 +398,25 @@ const axSelectToArr = (element, start = 1) => {
     return getChild();
 }
 /**
+ * 从table数据转成二维数组格式：[['','',...],...]
+ * element为table标签
+ */
+const axTableToJson = (element) => {
+    let elem = axIdToDom(element),
+        tbody = elem.querySelector('tbody'),
+        rows = tbody.rows,
+        rowArr = [];
+    [...rows].forEach((i) => {
+        let tds = i.cells,
+            tdArr = [];
+        [...tds].forEach((k) => {
+            tdArr.push(k.innerText.trim());
+        });
+        rowArr.push(tdArr);
+    });
+    return rowArr;
+}
+/**
  * 从datalist中获取对象数组格式：[{"value":""},{"value":""}]
  */
 const axListToArr = (element, start = 1) => {
@@ -416,7 +435,7 @@ const axListToArr = (element, start = 1) => {
             name = '',
             obj = {};
         name = elem.textContent.trim();
-        value = elem.getAttribute('value') ?  elem.getAttribute('value').trim() : name;
+        value = elem.getAttribute('value') ? elem.getAttribute('value').trim() : name;
         obj = { "id": index, "name": name, "value": value };
         if (!axIsEmpty(elem.dataset)) {
             Object.assign(obj, elem.dataset)
@@ -432,7 +451,7 @@ const axArrToTree = (arr, start) => {
     let root = start ? start : 0;
     arr.forEach(item => {
         let children = arr.filter(v => item.id === v.pId);
-        if(children.length){
+        if (children.length) {
             item.children = children;
         }
     });
@@ -679,8 +698,8 @@ const axDataset = (element, obj) => {
                     value = JSON.parse(value);
                 } else if (value.replace(/\s*/g, "").indexOf('},{') != -1) {
                     value = JSON.parse('[' + value + ']');
-                } 
-                if (typeof value == 'string' && ( integer.test(value) || float.test(value))) {
+                }
+                if (typeof value == 'string' && (integer.test(value) || float.test(value))) {
                     value = Number(value);
                 }
                 let split = name.split('-');
@@ -924,8 +943,8 @@ const axHideSize = (parent, attrName, child) => {
 /**
  * 定义AJAX函数
  */
-const axAjax = (option, elem) => {
-    if (!option) { console.error('No options!'); return false; }
+const axAjax = (option, elem, callback) => {
+    if (!option) { console.error('There is no options!'); return false; }
     let label = axAddElem('SPAN', { 'aria-label': 'loading' }),
         dom = elem ? axIdToDom(elem) : null;
     dom ? dom.appendChild(label) : null;
@@ -934,13 +953,13 @@ const axAjax = (option, elem) => {
         selector: '',
         type: 'post',
         async: true,
-        before: (loading) => { dom ? (label.innerHTML = loading, dom.setAttribute('aria-ajax', 'before')) : null },
-        success: (data, state) => { dom ? dom.innerHTML = data && dom.setAttribute('aria-ajax', 'success') : null },
-        error: (data, state) => { dom ? (label.innerHTML = `<i class="ax-alert ax-danger">发生了一个错误！：${state}</i>`, dom.setAttribute('aria-ajax', 'error')) : console.error(`发生了一个错误！：${state}`) },
         data: {},
         delay: 60000,
         timeout: () => { dom ? (label.innerHTML = '<i class="ax-alert ax-danger">请求超时了！</i>', dom.setAttribute('aria-ajax', 'timeout')) : console.error('请求超时了！') },
-        loading: '<span class="ax-loading"><i></i></span>'
+        loading: '<span class="ax-loading"><i></i></span>',
+        before: (loading) => { dom ? (label.innerHTML = loading, dom.setAttribute('aria-ajax', 'before')) : null },
+        success: (data) => { dom ? (dom.innerHTML = data, dom.setAttribute('aria-ajax', 'success')) : null; },
+        error: (data, state) => { dom ? (label.innerHTML = `<i class="ax-alert ax-danger">错误状态：${state}</i>`, dom.setAttribute('aria-ajax', 'error')) : console.error(`错误状态：${state}`); },
     };
     for (k in option) {
         dft[k] = option[k];
@@ -958,50 +977,56 @@ const axAjax = (option, elem) => {
     }
     let timeout = setTimeout(function () {
         xhr.abort();
-        dft.timeout.call(this);
+        dft.timeout();
     }, dft.delay);
-    xhr.onreadystatechange = function () {
-        if (xhr.readyState < 4) {
-            dft.before.call(this, dft.loading, xhr.readyState, dom);
-            timeout;
-        } else {
-            clearTimeout(timeout);
-            if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
-                let div = document.createElement('div'),
-                    content = '',
-                    reg = /(<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>)|(<\/?html.*?>)|(<\/?body.*?>)/gi;
-                div.innerHTML = xhr.responseText;
-                if (dft.selector && div.querySelector(dft.selector)) {
-                    content = div.querySelector(dft.selector).innerHTML;
-                } else if (dft.selector && !div.querySelector(dft.selector)) {
-                    console.error(`The node of "${dft.selector}" is not exist!`);
-                    content = xhr.responseText.replace(reg,'').trim();
-                } else {
-                    if (xhr.responseText.trim().substr(0, 1) == "{" || xhr.responseText.trim().substr(0, 1) == "[") {
-                        content = JSON.parse(xhr.responseText.trim());
+    let promise = new Promise((resolve, reject) => {
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState < 4) {
+                !axIsEmpty(dft.before) ? dft.before(dft.loading, xhr.status, dom) : null;
+                callback && callback(dft.loading, xhr.status, dom);
+                timeout;
+            } else {
+                clearTimeout(timeout);
+                if (xhr.status >= 200 && xhr.status < 300 || xhr.status == 304) {
+                    let div = document.createElement('div'),
+                        content = '',
+                        reg = /(<head\b[^<]*(?:(?!<\/head>)<[^<]*)*<\/head>)|(<\/?html.*?>)|(<\!DOCTYPE.*?html.*?>)|(<\/?body.*?>)/gi;
+                    div.innerHTML = xhr.responseText;
+                    if (dft.selector && div.querySelector(dft.selector)) {
+                        content = div.querySelector(dft.selector).innerHTML;
+                    } else if (dft.selector && !div.querySelector(dft.selector)) {
+                        console.error(`The node of "${dft.selector}" is not exist!`);
+                        content = xhr.responseText.replace(reg, '').trim();
                     } else {
-                        content = xhr.responseText.replace(reg,'').trim();
+                        if (xhr.responseText.trim().substr(0, 1) == "{" || xhr.responseText.trim().substr(0, 1) == "[") {
+                            content = JSON.parse(xhr.responseText.trim());
+                        } else {
+                            content = xhr.responseText.replace(reg, '').trim();
+                        }
                     }
+                    !axIsEmpty(dft.success) ? dft.success(content, xhr.status, dom) : null;
+                    resolve([content, xhr.status, dom]);
                 }
-                dft.success.call(this, content, xhr.readyState, dom);
-            }
-            else {
-                dft.error.call(this, xhr.responseText, xhr.readyState, dom);
+                else {
+                    !axIsEmpty(dft.error) ? dft.error(xhr.responseText, xhr.status, dom) : null;
+                    reject([xhr.responseText, xhr.status, dom]);
+                }
             }
         };
-    };
-    let url = dft.url + '?now=' + new Date().getTime();
-    if (dft.type.toLowerCase() == 'get') {
-        url += params;
-        xhr.open('get', url + '?' + params, true);
-        xhr.send();
-    }
-    else if (dft.type.toLowerCase() == 'post') {
-        xhr.open('post', url, true);
-        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send(params);
-    }
-}
+        let url = dft.url + '?now=' + new Date().getTime();
+        if (dft.type.toLowerCase() == 'get') {
+            url += params;
+            xhr.open('get', url + '?' + params, true);
+            xhr.send();
+        }
+        else if (dft.type.toLowerCase() == 'post') {
+            xhr.open('post', url, true);
+            xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            xhr.send(params);
+        }
+    }).catch(() => { });
+    return promise;
+};
 /**
  * ajax提交表单封装
  * url是异步提交地址，必填项
@@ -1013,7 +1038,7 @@ const axAjax = (option, elem) => {
  * beforeFun是成功返回前的回调函数，选填项
  * successFun是成功返回后的回调函数，选填项
  */
-const axAjaxSubmit = (url, outer, target, successFun, loadingMode, type = 'post', delay, beforeFun, errorFun, options = {}) => {
+const axAjaxSubmit = (url, outer, target, type = 'post',successFun, loadingMode,  delay, beforeFun, errorFun, options = {}) => {
     if (!url) { console.error('Url is required!'); return false; }
     if (!outer) { console.error('Form node is required!'); return false; }
     let parentDom = axIdToDom(outer),
@@ -1800,7 +1825,7 @@ const axResult = (elem, state) => {
 /**
  * 获取主体内容，适用于dialog|drawer|popup
  */
-const axCreateContent = (options, instance, callback) => {
+const axCreateContent = (options, instance, type = 'post', callback) => {
     let html = options.content;
     if (options.type == 'html' && typeof options.content === 'string' && options.content.substr(0, 1) == '#') {
         options.content = document.querySelector(options.content).innerHTML;
@@ -1813,6 +1838,7 @@ const axCreateContent = (options, instance, callback) => {
                 content = options.content;
             axAjax({
                 url: ajaxUrl,
+                type: type || 'post',
                 selector: ajaxSelector,
                 before: (loading) => {
                     options.content = loading;
@@ -1831,6 +1857,7 @@ const axCreateContent = (options, instance, callback) => {
             let content = options.content;
             axAjax({
                 url: options.url,
+                type: type || 'post',
                 before: (loading) => {
                     options.content = loading;
                 },
@@ -2157,6 +2184,7 @@ class axValid {
             chars: '~!@#', 
             charsShow: false, 
             trigger: 'blur', 
+            ajaxType:'post',
             onTrigger: '', 
             onChange: '',
             onInit: '',
@@ -2649,7 +2677,7 @@ class axValid {
                 axAjax({
                     url: _this.options.url,
                     data: { name: _this.name, value: _this.value, parent: _this.parent },
-                    type: 'post',
+                    type: _this.options.ajaxType,
                     success: function (content) {
                         _this.verified = content.verified;
                         _this.text = content.text;
@@ -3607,6 +3635,7 @@ class axDrawer {
             footerShow: true,
             footerBreak: false,
             note: '',
+            ajaxType:'post',
             confirm: {
                 text: '确定',
                 classname: '',
@@ -3653,7 +3682,7 @@ class axDrawer {
                 return false;
             }
         } else {
-            this.content.innerHTML = axCreateContent(this.options, this, function () {
+            this.content.innerHTML = axCreateContent(this.options, this, this.options.ajaxType,function () {
                 axPreventScroll(_this.wrapper, _this.body);
             });
         }
@@ -3674,10 +3703,10 @@ class axDrawer {
                 } else if (_this.options.confirm.type == 'asyn') {
                     if (_this.form && _this.options.type == 'form' && _this.options.confirm.url) {
                         axValidRepeat(e, axValids, _this.form, function () {
-                            axAjaxSubmit(_this.options.confirm.url, _this.form, button, function (content) {
+                            axAjaxSubmit(_this.options.confirm.url, _this.form, button, _this.options.ajaxType,function (content) {
                                 _this.options.confirm.callback && _this.options.confirm.callback.call(_this,content);
                             });
-                        })
+                        });
                     } else {
                         console.error('Form node is required & type of options must be form string & url of asyn is required!');
                         return false;
@@ -3952,6 +3981,7 @@ class axDialog {
             footerType: 'center',
             footerBreak: false,
             note: '',
+            ajaxType:'post',
             confirm: {
                 text: '确定',
                 classname: '',
@@ -4007,7 +4037,7 @@ class axDialog {
                 return false;
             }
         } else {
-            this.content.innerHTML = axCreateContent(this.options, this, function () {
+            this.content.innerHTML = axCreateContent(this.options, this, this.options.ajaxType,function () {
                 axPreventScroll(_this.wrapper, _this.body);
             });
         }
@@ -4031,7 +4061,7 @@ class axDialog {
                 } else if (_this.options.confirm.type == 'asyn') {
                     if (_this.form && _this.options.type == 'form' && _this.options.confirm.url) {
                         axValidRepeat(e, axValids, _this.form, function () {
-                            axAjaxSubmit(_this.options.confirm.url, _this.form, button, function (content) {
+                            axAjaxSubmit(_this.options.confirm.url, _this.form, button,_this.options.ajaxType, function (content) {
                                 _this.options.confirm.callback && _this.options.confirm.callback.call(_this,content);
                             });
                         })
@@ -4334,6 +4364,7 @@ class axPopup {
             footerType: 'line',
             footerBreak: false,
             note: '',
+            ajaxType:'post',
             confirm: {
                 text: '确定',
                 classname: '',
@@ -4383,7 +4414,7 @@ class axPopup {
                 return false;
             }
         } else {
-            this.content.innerHTML = axCreateContent(this.options, this, () => {
+            this.content.innerHTML = axCreateContent(this.options, this, this.options.ajaxType,() => {
                 axPreventScroll(_this.wrapper, _this.body);
             });
         }
@@ -4405,10 +4436,10 @@ class axPopup {
                 } else if (_this.options.confirm.type == 'asyn') {
                     if (_this.form && _this.options.type == 'form' && _this.options.confirm.url) {
                         axValidRepeat(e, axValids, _this.form, function () {
-                            axAjaxSubmit(_this.options.confirm.url, _this.form, button, function (content) {
+                            axAjaxSubmit(_this.options.confirm.url, _this.form, button, _this.options.ajaxType,function (content) {
                                 _this.options.confirm.callback && _this.options.confirm.callback.call(_this, content);
                             });
-                        })
+                        });
                     } else {
                         console.error('Form node is required & type of options must be form string & url of asyn is required!');
                         return false;
@@ -5019,6 +5050,7 @@ class axMenu {
             headerWidth: '',
             dropWidth: '',
             gutter: '',
+            ajaxType:'post',
         }, options, this.targetDom);
         let _this = this;
         this.handlers = {};
@@ -5220,6 +5252,7 @@ class axMenu {
         if (this.options.url) {
             axAjax({
                 url: _this.options.url,
+                type:_this.options.ajaxType,
                 success: (data) => {
                     _this.targetDom.appendChild(axStrToDom(data));
                     _this.li = _this.targetDom.querySelectorAll('li');
@@ -9728,8 +9761,13 @@ class axComplete {
         if (this.options.rel) {
             this.rel.onclick = function () {
                 if (!_this.popup.targetDom.classList.contains('ax-show')) {
+                    let value = _this.input.value;
+                    _this.input.value = '';
+                    _this.input.focus();
+                    _this.input.value = value;
                     _this.popup.show();
                 } else {
+                    _this.input.blur();
                     _this.popup.hide();
                 }
             }
@@ -13040,6 +13078,7 @@ class axPagination {
             className: '',
             lastDel: '', 
             async: '',
+            ajaxType:'post',
             delay: 0,
             dataExtend: '',
             rendered: function (current, pagesNum) {
@@ -13091,7 +13130,7 @@ class axPagination {
             return false;
         }
         if (this.dataType(data) == 'json') {
-            if (!_this.template) {
+            if (!_this.template && this.listDom.nodeName != 'TBODY') {
                 console.error('The template is required!');
                 return false;
             }
@@ -13102,7 +13141,7 @@ class axPagination {
                 'rendered' in _this.handlers ? _this.emit('rendered', _this.current, _this.pagesNum) : null;
             });
         } else if (this.dataType(data) == 'sql') {
-            if (!this.template) {
+            if (!this.template && this.listDom.nodeName != 'TBODY') {
                 console.error('The template is required!');
                 return false;
             }
@@ -13161,6 +13200,7 @@ class axPagination {
     }
     renderFinish() {
         let _this = this;
+        this.targetDom.removeAttribute('paging');
         this.renderPages(this.current);
         this.getPagination();
         if(this.listDom && !this.targetExist){
@@ -13372,24 +13412,24 @@ class axPagination {
             fragment.appendChild(this.pagePrev);
             fragment.appendChild(this.pageNext);
         } else if (this.options.type == 'full') {
+            fragment.appendChild(this.pageTotal);
             fragment.appendChild(this.pageFirst);
             fragment.appendChild(this.pagePrev);
             fragment.appendChild(this.pagesDom);
             fragment.appendChild(this.pageNext);
             fragment.appendChild(this.pageLast);
-            fragment.appendChild(this.pageTotal);
             fragment.appendChild(this.pageGo);
         } else if (this.options.type == 'pagesRight') {
             let left = axAddElem('div'),
                 right = axAddElem('div', { class: 'ax-col ax-align-right' });
             this.targetDom.classList.add('ax-row');
             left.appendChild(this.pageTotal);
-            left.appendChild(this.pageGo);
             right.appendChild(this.pageFirst);
             right.appendChild(this.pagePrev);
             right.appendChild(this.pagesDom);
             right.appendChild(this.pageNext);
             right.appendChild(this.pageLast);
+            right.appendChild(this.pageGo);
             fragment.appendChild(left);
             fragment.appendChild(right);
         } else if (this.options.type == 'pagesLeft') {
@@ -13397,12 +13437,12 @@ class axPagination {
                 left = axAddElem('div', { class: 'ax-col ax-align-left' });
             this.targetDom.classList.add('ax-row');
             right.appendChild(this.pageTotal);
-            right.appendChild(this.pageGo);
             left.appendChild(this.pageFirst);
             left.appendChild(this.pagePrev);
             left.appendChild(this.pagesDom);
             left.appendChild(this.pageNext);
             left.appendChild(this.pageLast);
+            left.appendChild(this.pageGo);
             fragment.appendChild(left);
             fragment.appendChild(right);
         } else {
@@ -13414,12 +13454,21 @@ class axPagination {
         let _this = this;
         axAjax({
             url: data,
+            type:this.options.ajaxType,
             before: function (loading) {
                 _this.listDom ? _this.listDom.innerHTML = '<div class="ax-pageTurning">' + loading + '</div>' : null;
             },
             success: function (content) {
                 content.forEach(i => {
-                    let item = axStrToDom(axTplEngine(_this.template, i));
+                    let item;
+                    if (_this.listDom.nodeName == 'TBODY') {
+                        item = axAddElem('tr');
+                        for (let k in i) {
+                            item.appendChild(axAddElem('td', { name: k }, i[k]));
+                        }
+                    } else {
+                        item = axStrToDom(axTplEngine(_this.template, i));
+                    }
                     _this.preData.push(item);
                 });
                 _this.getCurrent(_this.preData);
@@ -13432,6 +13481,7 @@ class axPagination {
         axAjax({
             data: Object.assign({ count: this.options.count, current: current }, _this.options.dataExtend),
             url: this.options.data,
+            type:this.options.ajaxType,
             before: function (loading) {
                 if (_this.listDom) {
                     _this.loadingDom.style = '';
@@ -13458,9 +13508,17 @@ class axPagination {
                 }
                 _this.preData = [];
                 content.data.forEach(i => {
-                    let item = axStrToDom(axTplEngine(_this.template, i));
+                    let item;
+                    if (_this.listDom.nodeName == 'TBODY') {
+                        item = axAddElem('tr');
+                        for (let k in i) {
+                            item.appendChild(axAddElem('td', { name: k }, i[k].toString()));
+                        }
+                    } else {
+                        item = axStrToDom(axTplEngine(_this.template, i));
+                    }
                     _this.preData.push(item);
-                });
+                }); 
                 _this.getCurrent(content.data, ~~content.current, ~~content.pagesNum, ~~content.itemsNum);
                 callback && callback.call(_this);
             }
@@ -13535,6 +13593,7 @@ class axPagination {
     update(setting, mode = 'overwrite', callback) {
         this.options = axExtend(this.options, setting);
         this.current = this.options.current;
+        this.targetDom.setAttribute('paging','');console.log(this.targetDom)
         this.targetDom.innerHTML = '';
         mode == 'overwrite' ? this.preData = [] : null;
         this.init(this.options.data);
@@ -13544,6 +13603,7 @@ class axPagination {
     }
     updateData(data, mode = 'overwrite', callback) {
         this.options.data = data;
+        this.targetDom.setAttribute('paging','');
         this.targetDom.innerHTML = '';
         mode == 'overwrite' ? this.preData = [] : null;
         this.init(this.options.data);
@@ -13595,6 +13655,7 @@ class axList {
             className: '',
             lastDel: '', 
             async: '',
+            ajaxType:'post',
             loadingMode: 'overlay',
             delay: 0,
             dataExtend: '',
@@ -13640,6 +13701,7 @@ class axList {
                 let _this = this;
                 axAjax({
                     url: _this.options.data,
+                    type:_this.options.ajaxType,
                     success: function (content) {
                         let data = [];
                         content.forEach(i => {
@@ -13787,6 +13849,7 @@ class axList {
         this.paginationOpt.className = this.options.className;
         this.paginationOpt.lastDel = this.options.lastDel;
         this.paginationOpt.async = this.options.async;
+        this.paginationOpt.ajaxType = this.options.ajaxType;
         this.paginationOpt.delay = this.options.delay;
         this.paginationOpt.loadingMode = this.options.loadingMode;
         this.paginationOpt.dataExtend = this.options.dataExtend;
@@ -22671,7 +22734,7 @@ class axLightbox {
                     if (scale > 1) {
                         _this.zoomIn = true;
                     } else {
-                        setTimeout(function(){
+                        setTimeout(function () {
                             _this.zoomIn = false;
                         }, 100)
                     }
@@ -22945,7 +23008,7 @@ class axLightbox {
     }
     setAttribute() {
         for (let i = 0, len = this.data.length; i < len; i++) {
-            if (this.data[i].hasOwnProperty('type') && (['iframe','video','text'].includes(this.data[i].type))) {
+            if (this.data[i].hasOwnProperty('type') && (['iframe', 'video', 'text'].includes(this.data[i].type))) {
                 this.options.thumb = false;
             }
             break;
@@ -22970,13 +23033,13 @@ class axLightbox {
         this.button ? this.button.classList.add(this.options.btnClass) : null;
         callback && callback.call(this);
         'shown' in this.handlers ? this.emit('shown', '') : null;
-            _this.targetDom.onclick = function (ev) {
-                _this.overlayClose(ev);
-                let closeArea = _this.closeArea.includes(false);
-                if (!closeArea && !_this.zoomIn) {
-                    _this.hide();
-                }
+        _this.targetDom.onclick = function (ev) {
+            _this.overlayClose(ev);
+            let closeArea = _this.closeArea.includes(false);
+            if (!closeArea && !_this.zoomIn) {
+                _this.hide();
             }
+        }
         return this;
     }
     hide(callback) {
@@ -23041,12 +23104,23 @@ class axLightbox {
         return obj;
     }
     let datas = [];
-    document.querySelectorAll('[axLightbox]').forEach(element => {
-        let referName = element.getAttribute('axLightbox');
-        if (referName) {
+    let lightboxBtns = [...document.querySelectorAll('[axLightbox]')].filter(i => i.getAttribute('axLightbox')),
+        namesObj = {};
+    lightboxBtns.forEach(i => {
+        let name = i.getAttribute('axLightbox');
+        if (!namesObj.hasOwnProperty(name)) {
+            namesObj[name] = [i];
+        } else {
+            namesObj[name].push(i);
+        }
+    });
+    for (let i in namesObj) {
+        let index = 0;
+        namesObj[i].forEach(k => {
+            k.slideIndex = index;
             let data = [];
-            if (element.getAttribute('data-src')) {
-                data = axCreateData(element.getAttribute('data-src'), ['src', 'cover', 'caption', 'type'], 'figure', ['media', 'cover', 'caption', 'type'], ['', '', '', 'image'], function (data) {
+            if (k.getAttribute('data-src')) {
+                data = axCreateData(k.getAttribute('data-src'), ['src', 'cover', 'caption', 'type'], 'figure', ['media', 'cover', 'caption', 'type'], ['', '', '', 'image'], function (data) {
                     data.forEach(item => {
                         if (!item.cover && item.type == 'image') {
                             item.cover = item.media
@@ -23055,22 +23129,23 @@ class axLightbox {
                     });
                 });
             } else {
-                data = getHref(element);
+                data = getHref(k);
             }
+            index += data.length;
             if (axIsEmpty(datas)) {
-                datas.push({ name: referName, data: data });
+                datas.push({ name: i, data: data });
             } else {
                 datas.forEach(item => {
-                    if (item.name == referName) {
+                    if (item.name == i) {
                         item.data.push(...data);
                     }
                 })
-                if (!datas.some(item => (item.name == referName))) {
-                    datas.push({ name: referName, data: data });
+                if (!datas.some(item => (item.name == i))) {
+                    datas.push({ name: i, data: data });
                 }
             }
-        }
-    });
+        });
+    }
     datas.forEach(item => {
         let obj = {};
         let newIns = new axLightbox({
@@ -23081,14 +23156,17 @@ class axLightbox {
         newIns.referName = obj.name;
         axLightboxs.push(obj);
     })
-    document.querySelectorAll('[axLightbox]').forEach(element => {
+    document.querySelectorAll('[axLightbox]').forEach((element) => {
         let referName = element.getAttribute('axLightbox');
         if (referName) {
             element.onclick = (ev) => {
                 axPreventDefault(ev);
                 axLightboxs.forEach(item => {
                     if (item.name == referName) {
-                        axInstance(axLightboxs, referName).init().show();
+                        let ins = axInstance(axLightboxs, referName);
+                        ins.init();
+                        ins.insSwiper.slideTo(element.slideIndex, 0);
+                        ins.show();
                     }
                 })
             }
@@ -23210,7 +23288,7 @@ class axInfinite {
         this.options = axExtend({
             type: 'list', 
             offset: '0px', 
-            visible: [0, 0.5, 1], 
+            visible: [0], 
             url: '', 
             urlMax: 20,
             data: [], 
@@ -23223,6 +23301,7 @@ class axInfinite {
             count: 10, 
             finishText: '没有更多内容了',
             nextBtn: '<button class="ax-btn ax-btn-primary ax-longer">查看更多</button>',
+            ajaxType:'post',
             active:'',
         }, options, this.targetDom);
         this.handlers = {};
@@ -23414,6 +23493,7 @@ class axInfinite {
         let _this = this;
         axAjax({
             url: _this.url[urlStart],
+            type:_this.options.ajaxType,
             selector: _this.options.selector,
             error: function (data, state) {
                 console.error(`发生错误：${state}，可能是地址错误！`);
@@ -23438,6 +23518,7 @@ class axInfinite {
         let _this = this;
         axAjax({
             url: _this.url[urlStart],
+            type:_this.options.ajaxType,
             error: function (data, state) {
                 console.error(`发生错误：${state}，可能是地址错误！`);
                 _this.loadFinish();
@@ -23465,6 +23546,7 @@ class axInfinite {
         let _this = this;
         axAjax({
             url: _this.options.url,
+            type:_this.options.ajaxType,
             data: { start: sqlStart, count: sqlCount },
             error: function (data, state) {
                 console.error(`发生错误：${state}，可能是地址错误！`);
@@ -23504,6 +23586,318 @@ class axInfinite {
 (() => {
     document.querySelectorAll('[axInfinite]').forEach(element => {
         new axInfinite(element);
+    });
+})();
+/*!
+* 插件：进度条；使用方法：new axProgress('#id',{参数})
+*/
+class axProgress {
+    constructor(elem, options) {
+        this.targetDom = axIdToDom(elem);
+        this.options = axExtend({
+            type: 'line', 
+            color: '',
+            gradient: false,
+            linecap: 'round',
+            size: '',
+            range: [0, 100],
+            value: 0,
+            duration: '',
+            rotate: false,
+            trackShow: true,
+            labelFormat: '',
+            labelShow: true,
+            lablePlace: '',
+            labelText: {
+                unit: '%',
+                tips: '当前进度',
+                complete: '完成!',
+            },
+            started: '',
+            completed: '',
+            processing: '',
+        }, options, this.targetDom);
+        this.handlers = {};
+        this.circleWidth = 251.2;
+        this.semiWidth = 125.6;
+        this.gapWidth = 167.6;
+        let getValue;
+        if (this.options.type == 'circle') {
+            getValue = (this.circleWidth - ((this.options.value / this.options.range[1]) * this.circleWidth))
+        } else if (this.options.type == 'semicircle') {
+            getValue = (this.semiWidth - ((this.options.value / this.options.range[1]) * this.semiWidth));
+        } else if (this.options.type == 'gapcircle') {
+            getValue = (this.gapWidth - ((this.options.value / this.options.range[1]) * this.gapWidth));
+        } else {
+            getValue = Math.abs((this.options.value / (this.options.range[1] - this.options.range[0])) * 100);
+        }
+        this.trueValue = this.getDecimals(getValue);
+        this.value = this.options.value;
+        this.complete = this.value == this.options.range[1] ? true : false;
+        this.completeDom = axAddElem('span', { complete: '' }, `${this.options.labelText.complete}`);
+        this.init();
+    }
+    init() {
+        let _this = this;
+        this.getTrueValue(this.options.value);
+        this.createHtml();
+        this.setAttribute();
+        this.hasComplete();
+        this.options.started && this.options.started.call(this);
+        'started' in this.handlers ? this.emit('started', '') : null;
+    }
+    hasComplete() {
+        if (this.complete) {
+            this.targetDom.setAttribute('complete', 'true');
+            this.labelDom ? this.labelDom.appendChild(this.completeDom) : null;
+            this.options.completed && this.options.completed.call(this);
+            'completed' in this.handlers ? this.emit('completed', '') : null;
+        } else {
+            this.targetDom.removeAttribute('complete');
+        }
+    }
+    createAnimation() {
+        let dftTime = width => width * 3 + 200;
+        let time;
+        if (this.options.duration !== undefined && typeof this.options.duration === 'number') {
+            time = this.options.duration;
+        } else {
+            time = dftTime(Math.abs(this.barDiffer));
+        }
+        let initTime = new Date().getTime();
+        let repeat = () => {
+            if (this.complete) {
+                this.complete = false;
+                this.hasComplete();
+            }
+            let newTime = new Date().getTime() - initTime,
+                timestep = newTime / time,
+                timefactor = axCurves.easeOut(timestep),
+                valueStep = this.lastValue + this.valueDiffer * timefactor,
+                barStep = this.lastTrueValue + this.barDiffer * timefactor;
+            if (newTime <= time) {
+                let value = this.getDecimals(valueStep),
+                    trueValue = this.getDecimals(barStep);
+                if (this.options.type == 'line') {
+                    this.bar.style.width = trueValue + '%';
+                } else {
+                    this.bar.setAttribute('stroke-dashoffset', trueValue);
+                }
+                this.progressDom ? this.progressDom.innerText = Math.trunc(valueStep) : null;
+                this.options.processing && this.options.processing.call(this, value, trueValue);
+                'processing' in this.handlers ? this.emit('processing', value, trueValue) : null;
+            } else {
+                if (this.options.type == 'line') {
+                    this.bar.style.width = this.trueValue + '%';
+                } else {
+                    this.bar.setAttribute('stroke-dashoffset', this.trueValue);
+                }
+                this.progressDom ? this.progressDom.innerText = this.value : null;
+                this.complete = this.value >= this.options.range[1] ? true : false;
+            }
+            let repeatLoop = requestAnimationFrame(repeat);
+            if (newTime > time) {
+                cancelAnimationFrame(repeatLoop);
+                this.hasComplete();
+                if (this.value <= 0) {
+                    this.options.started && this.options.started.call(this);
+                    'started' in this.handlers ? this.emit('started', '') : null;
+                }
+            }
+        };
+        repeat();
+    }
+    getDecimals(num) {
+        return Math.floor(num * 100) / 100;
+    }
+    getTrueValue(val) {
+        if (val < this.options.range[0]) {
+            val = this.options.range[0];
+        } else if (val > this.options.range[1]) {
+            val = this.options.range[1];
+        }
+        this.valueDiffer = val - this.value;
+        this.lastValue = this.value;
+        this.value = val;
+        if (this.options.type == 'circle') {
+            this.barDiffer = (this.circleWidth - ((val / this.options.range[1]) * this.circleWidth)) - this.trueValue;
+            this.lastTrueValue = this.trueValue;
+            this.trueValue = (this.circleWidth - ((val / this.options.range[1]) * this.circleWidth));
+            this.trueValue > this.circleWidth ? this.trueValue = this.circleWidth : this.trueValue = this.getDecimals(this.trueValue);
+        } else if (this.options.type == 'semicircle') {
+            this.barDiffer = (this.semiWidth - ((val / this.options.range[1]) * this.semiWidth)) - this.trueValue;
+            this.lastTrueValue = this.trueValue;
+            this.trueValue = (this.semiWidth - ((val / this.options.range[1]) * this.semiWidth));
+            this.trueValue > this.semiWidth ? this.trueValue = this.semiWidth : this.trueValue = this.getDecimals(this.trueValue);
+        }else if (this.options.type == 'gapcircle') {
+            this.barDiffer = (this.gapWidth - ((val / this.options.range[1]) * this.gapWidth)) - this.trueValue;
+            this.lastTrueValue = this.trueValue;
+            this.trueValue = (this.gapWidth - ((val / this.options.range[1]) * this.gapWidth));
+            this.trueValue > this.gapWidth ? this.trueValue = this.gapWidth : this.trueValue = this.getDecimals(this.trueValue);
+        } else if (this.options.type == 'line') {
+            this.barDiffer = Math.abs((val / (this.options.range[1] - this.options.range[0])) * 100) - this.trueValue;
+            this.lastTrueValue = this.trueValue;
+            this.trueValue = Math.abs((val / (this.options.range[1] - this.options.range[0])) * 100);
+            this.trueValue > 100 ? this.trueValue = 100 : this.trueValue = this.getDecimals(this.trueValue);
+        }
+    }
+    setAttribute() {
+        this.targetDom.setAttribute('linecap', this.options.linecap);
+        this.targetDom.setAttribute('type', this.options.type);
+        this.options.size ? this.targetDom.setAttribute('size', this.options.size) : null;
+        this.options.color ? this.targetDom.setAttribute('color', this.options.color) : null;
+        this.options.gradient ? this.targetDom.setAttribute('gradient', '') : null;
+        !this.options.trackShow ? this.targetDom.setAttribute('track', 'false') : null;
+        if (this.options.rotate) {
+            this.wrapper.classList.add('ax-rotate360');
+            this.wrapper.style.animationIterationCount = 'infinite';
+        }
+    }
+    createHtml() {
+        let svg;
+        if (this.options.type == 'line') {
+            this.wrapper = axAddElem('div', { 'track': '' });
+            this.bar = axAddElem('div', { 'bar': '', 'style': `width:${this.trueValue}%` });
+            this.labelFormat = this.options.labelFormat ? this.options.labelFormat : `<span label><i progress></i><i unit></i></span>`;
+        } else {
+            this.labelFormat = this.options.labelFormat ? this.options.labelFormat : `<div label><div tips></div><div result><i progress></i><i unit></i></div></div>`;
+            let gradient = '';
+            if (this.options.gradient) {
+                if (this.options.color == 'primary') {
+                    gradient = `
+                <linearGradient id="svgbar-primary" >
+                    <stop offset="0%" style="stop-color:var(--color-primary);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-primary-like);" ></stop>
+                </linearGradient>
+              `;
+                } else if (this.options.color == 'secondary') {
+                    gradient = `
+                <linearGradient id="svgbar-secondary" >
+                    <stop offset="0%" style="stop-color:var(--color-secondary);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-secondary-like);" ></stop>
+                </linearGradient>
+              `;
+                } else if (this.options.color == 'danger') {
+                    gradient = `
+                <linearGradient id="svgbar-danger" >
+                    <stop offset="0%" style="stop-color:var(--color-danger);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-danger-like);" ></stop>
+                </linearGradient>
+              `;
+                } else if (this.options.color == 'success') {
+                    gradient = `
+                <linearGradient id="svgbar-success" >
+                    <stop offset="0%" style="stop-color:var(--color-success);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-success-like);" ></stop>
+                </linearGradient>
+              `;
+                } else if (this.options.color == 'warning') {
+                    gradient = `
+            <linearGradient id="svgbar-warning" >
+                <stop offset="0%" style="stop-color:var(--color-warning);" ></stop>
+                <stop offset="100%" style="stop-color:var(--color-warning-like);" ></stop>
+            </linearGradient>
+          `;
+                } else if (this.options.color == 'info') {
+                    gradient = `
+                <linearGradient id="svgbar-info" >
+                    <stop offset="0%" style="stop-color:var(--color-info);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-info-like);" ></stop>
+                </linearGradient>
+              `;
+                } else if (this.options.color == 'ad') {
+                    gradient = `
+                <linearGradient id="svgbar-ad" >
+                    <stop offset="0%" style="stop-color:var(--color-ad);" ></stop>
+                    <stop offset="100%" style="stop-color:var(--color-ad-like);"></stop>
+                </linearGradient>
+              `;
+                }
+            }
+            if (this.options.type == 'circle') {
+                svg = `<svg viewBox="0 0 100 100">
+                            ${gradient}
+                            ${this.options.trackShow ? '<path d="M 50 50 m -40 0 a 40 40 0 1 1 80 0  a 40 40 0 1 1 -80 0" track></path>' : ''}
+                            <path d="M 50 50 m -40 0 a 40 40 0 1 1 80 0  a 40 40 0 1 1 -80 0" bar stroke-dasharray=${this.circleWidth} stroke-linecap=${this.options.linecap}  stroke-dashoffset=${this.trueValue}></path>
+                       </svg>
+                        `;
+            } else if (this.options.type == 'semicircle') {
+                svg = `<svg viewBox="0 0 100 60">
+                            ${gradient}
+                            ${this.options.trackShow ? `<path d="M 50 50 m -40 0 a 40 40 0 1 1 80 0" track stroke-linecap=${this.options.linecap}></path>` : ''}
+                            <path d="M 50 50 m -40 0 a 40 40 0 1 1 80 0" bar stroke-dasharray=${this.semiWidth} stroke-linecap=${this.options.linecap} stroke-dashoffset=${this.trueValue}></path>
+                       </svg>
+                        `;
+            }
+            else if (this.options.type == 'gapcircle') {
+                svg = `<svg viewBox="0 0 100 80">
+                            ${gradient}
+                            ${this.options.trackShow ? `<path d="M15.367,70.026C11.954,64.137,10,57.296,10,49.999 C10,27.909,27.909,10,50,10c22.092,0,40,17.909,40,39.999c0,7.295-1.952,14.134-5.363,20.022" track stroke-linecap=${this.options.linecap}></path>` : ''}
+                            <path d="M15.367,70.026C11.954,64.137,10,57.296,10,49.999 C10,27.909,27.909,10,50,10c22.092,0,40,17.909,40,39.999c0,7.295-1.952,14.134-5.363,20.022" bar stroke-dasharray=${this.gapWidth} stroke-linecap=${this.options.linecap} stroke-dashoffset=${this.trueValue}></path>
+                       </svg>
+                        `;
+            }
+        }
+        if (this.options.labelShow) {
+            if (!this.options.labelPlace) {
+                this.targetDom.insertAdjacentHTML('beforeEnd', this.labelFormat);
+                this.labelDom = this.targetDom.querySelector('[label]');
+            } else {
+                let place = axIdToDom(this.options.labelPlace);
+                place.insertAdjacentHTML('beforeEnd', this.labelFormat);
+                this.labelDom = place.querySelector('[label]');
+            }
+            this.progressDom = this.labelDom.querySelector('[progress]');
+            this.unitDom = this.labelDom.querySelector('[unit]');
+            this.tipsDom = this.labelDom.querySelector('[tips]');
+            this.progressDom ? this.progressDom.innerHTML = this.value : null;
+            this.unitDom ? this.unitDom.innerHTML = this.options.labelText.unit : null;
+            this.tipsDom ? this.tipsDom.innerHTML = this.options.labelText.tips : null;
+        }
+        if (this.options.type == 'line') {
+            this.wrapper.appendChild(this.bar);
+            this.targetDom.insertAdjacentElement('afterBegin', this.wrapper);
+        } else {
+            this.targetDom.insertAdjacentHTML('afterBegin', svg);
+            this.wrapper = this.targetDom.querySelector('svg');
+            this.bar = this.wrapper.querySelector('[bar]');
+            this.track = this.wrapper.querySelector('[track]');
+        }
+    }
+    set(val, callback) {
+        this.getTrueValue(val);
+        if (this.value == this.lastValue) {
+            return false;
+        }
+        this.createAnimation();
+        callback && callback.call(this);
+        'seted' in this.handlers ? this.emit('seted', this.value, this.trueValue) : null;
+        return this;
+    }
+    get() {
+        return {
+            value: this.value,
+            trueValue: this.trueValue,
+            lastValue: this.lastValue,
+            lastTrueValue: this.lastTrueValue,
+            complete: this.complete
+        };
+    }
+    on(type, handler) {
+        axAddPlan(type, handler, this);
+        return this;
+    }
+    emit(type, ...params) {
+        axExePlan(type, this, ...params);
+    }
+    off(type, handler) {
+        axDelPlan(type, handler, this);
+        return this;
+    }
+}
+(() => {
+    document.querySelectorAll('[axProgress]').forEach(element => {
+        new axProgress(element);
     });
 })();
 /*!
