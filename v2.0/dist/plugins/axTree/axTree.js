@@ -1,9 +1,9 @@
 /*!
- *Last modified: 2022-09-06 16:50:15
+ *Last modified: 2022-09-25 12:07:37
  *名称: axTree.js
  *简介: tree树菜单的js文件
  *用法: new axTree('#id',{参数})
- *版本: v1.0.0
+ *版本: v1.0.1
  *演示: https://www.axui.cn/v2.0/ax-tree.php
  *客服: 3217728223@qq.com
  *交流: QQ群952502085
@@ -44,6 +44,7 @@ class axTree {
             line: false,
             data: '', 
             async: '',
+            ajaxType:'post',
             delay: 0,
             fields: '',
             removeBefore: function (item, dom) {
@@ -98,6 +99,7 @@ class axTree {
             if (this.options.async == 'json') {
                 axAjax({
                     url: this.options.data,
+                    type:this.options.ajaxType,
                     success: function (content) {
                         _this.toTree(content);
                         _this.targetDom.innerHTML = '';
@@ -107,6 +109,7 @@ class axTree {
             } else if (this.options.async == 'sql') {
                 axAjax({
                     data: { pId: _this.options.firstFloor },
+                    type:this.options.ajaxType,
                     url: this.options.data,
                     success: function (content) {
                         _this.toTree(content);
@@ -426,6 +429,7 @@ class axTree {
                     if (!ul.querySelector('li')) {
                         axAjax({
                             data: { pId: item.id },
+                            type:_this.options.ajaxType,
                             url: _this.options.data,
                             before: function () {
                                 arrowDom.setAttribute('loading', '');
@@ -925,8 +929,8 @@ class axTree {
                             <span class="ax-indent">${'<i></i>'.repeat(floor - 1)}</span>
                             ${arrow}
                             ${check}
-                            <% if(this.children){ %>${_this.fileIcon ? _this.fileIcon.parent : ''}<% } else { %>${_this.fileIcon ? _this.fileIcon.child : ''} <% } %>
-                            <a class="ax-name"><% this.name %></a>
+                            <# if(this.children){ #>${_this.fileIcon ? _this.fileIcon.parent : ''}<# } else { #>${_this.fileIcon ? _this.fileIcon.child : ''} <# } #>
+                            <a class="ax-name"><# this.name #></a>
                             ${_this.options.toolsShow ? tools : ''}
                         </div>`,
             itemDom = axStrToDom(axTplEngine(nodeTpl, obj));
